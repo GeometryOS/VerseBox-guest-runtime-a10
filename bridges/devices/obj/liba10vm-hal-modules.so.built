@@ -1,0 +1,3 @@
+android_load_sphal_library
+hw_get_module
+hw_get_module_by_class

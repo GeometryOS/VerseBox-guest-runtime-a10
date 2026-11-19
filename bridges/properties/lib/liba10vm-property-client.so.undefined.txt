@@ -1,0 +1,13 @@
+                 U __cxa_atexit
+                 U __cxa_finalize
+                 U __errno
+                 U __register_atfork
+                 U close
+                 U connect
+                 U getenv
+                 U recv
+                 U send
+                 U setsockopt
+                 U socket
+                 U strcpy
+                 U strlen

@@ -1,0 +1,51 @@
+# Android 10 guest runtime · generated images and build outputs
+#
+# Only source (C/C++/Java/Python/shell, lists, patches, headers) is committed.
+# Everything below is either multi-GB guest material or reproducible output.
+
+# Generated prepared runtime (assets + jniLibs staged for the APK)
+prepared/
+# APK 侧旧格式 payload（rom/stage-apk-payload.py 产出：assets/$prefix/lib/**）
+prepared-apk/
+
+# Redroid 15 image: layer tarballs, extracted rootfs, and the path index
+downloads/
+rootfs/
+rootfs-index.json
+
+# Build outputs
+artifacts/
+logs/
+build/
+runtime/build/
+runtime/upstream/
+runtime/downloads/
+runtime/__pycache__/
+bridges/lib/
+bridges/bin/
+bridges/obj/
+bridges/media/
+bridges/graphics/lib/
+bridges/graphics/obj/
+**/__pycache__/
+
+# Graphics sources fetched by scripts/fetch-graphics-sources.sh (pinned commits;
+# third_party/graphics/{container,a9/{generated,definitions,framework,patches}} is
+# committed, only the downloaded upstream tree is not).
+# third_party/graphics/a9/upstream is committed: the pinned goldfish/qemu
+# sources are small (6.2 MB) and fetching them from gitiles is rate-limited
+# (HTTP 429) and incomplete for this build. The fetch script stays as a
+# fallback for a deliberately pruned checkout.
+
+# Local tool output
+*.log
+*.o
+*.rsp
+*.elf.txt
+*.dex.json
+
+# ROM 包产物（每个 0.5–1.6 GB，由 rom/pack-rom.py 产出；进了仓库就是灾难）
+dist/
+
+# 构建失败日志（*.log 已覆盖；显式留一行说明它是本地证据，不是源码）
+scripts/build-logs/

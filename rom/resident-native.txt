@@ -1,0 +1,36 @@
+# 必须留在 APK `lib/arm64-v8a` 的原生文件（Android 10 的 "execve 集合"）
+#
+# 谁读它：guest-runtime-a10/rom/pack-rom.py（新格式，写 files[].resident）与
+#          guest-runtime-a10/rom/stage-apk-payload.py（旧格式，决定哪个 .so 留在 APK 的 lib/）。
+# 两者都按本文件判断，不许在别处再写一份名字列表。
+#
+# 平台事实（2026-11-11 A15 真机实测，同一份 Android 15 宿主）：
+# App 进程的 SELinux 域是 u:r:untrusted_app，对 app_data_file 只有 { read open map execute }、
+# 没有 execute_no_trans。于是 dlopen()/mmap(PROT_EXEC) 允许，execve() 一个 /data/... 下的 ELF
+# 会 EACCES（error=13）；APK 自带的 nativeLibraryDir 标签不同，execve 允许。
+# 判据：日志里 `Cannot run program ...: error=13, Permission denied` 就是这里漏了一条。
+#
+# ---------------------------------------------------------------- 逐调用点核实（A10）
+#
+# 1) ld-android.so
+#      宿主侧：FrameworkSession.command()/launch() 的 argv[0]（每个 helper 都是它）、
+#             GuestRuntime.checkJava() 的 argv[0]、GuestDisplayPower 的 argv[0]。
+#      客体侧：vendor/runtime/filesystem/GuestExec.cpp 把任何 ET_DYN 的 execve 改写成
+#             execve($A10VM_EXEC_LINKER=<这个文件>, [loader, 程序, 参数...])。
+#      也就是全系统只有这一个文件真的被内核 execve；其余程序都是它的参数。
+# 2) seed-properties
+#      GuestRuntime.prepare() 用 ProcessBuilder 直接起它（属性区播种）。
+# 3) desktop-gpu-host
+#      FrameworkSession.startDesktop() 在 **externalGraphics == null**（没有宿主渲染器 socket）
+#      时用 ProcessBuilder 直接起它。app 的正常路径会传入 gpu.sock（宿主渲染器），所以这一条
+#      平时不会被 execve——但它一旦被走到就必须可执行，所以**留在 APK**（代价 2 MB）。
+#      这与 A15 的判定一致（A15 也是 4 条里有它）。
+#
+# 不在本清单里的（因此可以下沉）：dalvikvm64 / app_process64 / servicemanager / surfaceflinger /
+# installd / healthd / audioserver / media* / 以及 1000+ 条 /system/lib64 的库——它们全部由
+# `linker <program> args` 或 dlopen 使用，只 mmap、不 execve。
+#
+# 格式：每行一个**逻辑名**（清单 files[].logical），# 之后是注释。
+ld-android.so
+seed-properties
+desktop-gpu-host

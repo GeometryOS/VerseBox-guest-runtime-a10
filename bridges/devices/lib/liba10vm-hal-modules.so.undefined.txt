@@ -1,0 +1,11 @@
+                 U __cxa_atexit
+                 U __cxa_finalize
+                 U __register_atfork
+                 U dlclose
+                 U dlopen
+                 U dlsym
+                 U getenv
+                 U strcmp
+                 U strlen
+                 U strncmp
+                 U strrchr

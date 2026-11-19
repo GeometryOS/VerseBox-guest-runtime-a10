@@ -1,0 +1,24 @@
+# 媒体与网络组的客体侧上游。每行三段：仓库、提交、子树。
+# system/media 提供 hardware/audio.h 这一套 HAL 头，system/netd 提供 FwmarkCommand.h；
+# 其余是媒体七件要的源码与接口定义：frameworks/av 是媒体服务本体，
+# hardware/interfaces 提供 hidl-gen 要读的 .hal 定义，system/tools/hidl 与 system/libhidl
+# 是宿主生成器 hidl-gen 自己及其依赖，libfmq/icu/boringssl/selinux 是编译时的头。
+system/media fdc88efc259a7f702c93ecf5afbf0d2453fc0ac1 audio/include
+system/netd e27bf9edf55a77172ab26b2b494cbdf19b545268 include
+system/media fdc88efc259a7f702c93ecf5afbf0d2453fc0ac1 camera/include
+frameworks/av 7f6494d1ce3acf18991b7187630bfd225ad23393 .
+system/tools/hidl ddca27c5a2c9d82638f7b228af8cba126992712a .
+system/libhidl 0a5a8e42404174e8e183957c4a51c4e611ad851d .
+system/libhwbinder e40fe7f0e987445f23fc7b2aa7769164030b03fc include
+hardware/interfaces 2083ef1548be73bb8f002a98de8e1105fae85831 media
+hardware/interfaces 2083ef1548be73bb8f002a98de8e1105fae85831 cas
+hardware/interfaces 2083ef1548be73bb8f002a98de8e1105fae85831 drm
+hardware/interfaces 2083ef1548be73bb8f002a98de8e1105fae85831 graphics
+frameworks/native 013eb744f289c70e6d3fe180500d9a414ac55539 include
+frameworks/native 013eb744f289c70e6d3fe180500d9a414ac55539 libs/gui/include
+frameworks/native 013eb744f289c70e6d3fe180500d9a414ac55539 aidl/gui
+frameworks/native 013eb744f289c70e6d3fe180500d9a414ac55539 headers/media_plugin
+system/libfmq 922a25e2de65dd263810936d86a867574b1d8af8 include
+external/icu 66a591103d2e8c62714a2139201f6d29c2dc255b libandroidicu/include
+external/boringssl 7cb5584227c12b41ba11407b98bf896cdbd3d833 src/include
+external/selinux c4d3d93c335fbcd34b589b008ee27e5a2a590a43 libselinux/include

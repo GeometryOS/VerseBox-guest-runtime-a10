@@ -1,0 +1,4 @@
+# 各模块的 Android.bp。按子树取源拿不到仓库根的文件，而模块选择要读 Blueprint 的 srcs 与 flags，
+# 所以这几份单独取，每行三段：仓库、提交、仓库内路径。
+external/libcxx d356ee1683aa5681564c81ad69fe19bc6abd5da5 Android.bp
+external/libcxxabi b599c4d59ebf8d589c82a1d5fd98a6c0a955fe7b Android.bp

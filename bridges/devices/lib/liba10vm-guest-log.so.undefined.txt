@@ -1,0 +1,8 @@
+                 U __cxa_atexit
+                 U __cxa_finalize
+                 U __errno
+                 U __register_atfork
+                 U abort
+                 U snprintf
+                 U vsnprintf
+                 U write

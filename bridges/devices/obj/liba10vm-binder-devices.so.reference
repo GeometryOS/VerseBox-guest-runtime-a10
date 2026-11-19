@@ -1,0 +1,7 @@
+__open_2
+access
+close
+ioctl
+mmap
+mmap64
+open

@@ -801,28 +801,46 @@ Error EmuHWC2::Display::present(int32_t* outRetireFence) {
                          (void *)p);
         hostCon->unlock();
 
-        // Send a retire fence and use it as the release fence for all layers,
-        // since media expects it
+        // Without goldfish_sync, wait on a regular host EGL fence instead of
+        // creating a native fence that the absent sync device cannot retire.
+        const bool useGoldfishFence = mSyncDeviceFd >= 0;
         EGLint attribs[] = { EGL_SYNC_NATIVE_FENCE_ANDROID, EGL_NO_NATIVE_FENCE_FD_ANDROID };
 
         uint64_t sync_handle, thread_handle;
-        int retire_fd;
+        int retire_fd = -1;
 
         hostCon->lock();
-        rcEnc->rcCreateSyncKHR(rcEnc, EGL_SYNC_NATIVE_FENCE_ANDROID,
-                attribs, 2 * sizeof(EGLint), true /* destroy when signaled */,
-                &sync_handle, &thread_handle);
+        rcEnc->rcCreateSyncKHR(rcEnc,
+                useGoldfishFence ? EGL_SYNC_NATIVE_FENCE_ANDROID : EGL_SYNC_FENCE_KHR,
+                useGoldfishFence ? attribs : nullptr,
+                useGoldfishFence ? sizeof(attribs) : 0,
+                true /* destroy when signaled */, &sync_handle, &thread_handle);
         hostCon->unlock();
 
-        goldfish_sync_queue_work(mSyncDeviceFd,
-                sync_handle, thread_handle, &retire_fd);
-
-        for (size_t i = 0; i < mReleaseLayerIds.size(); ++i) {
-            mReleaseFences.push_back(dup(retire_fd));
+        if (useGoldfishFence) {
+            goldfish_sync_queue_work(mSyncDeviceFd,
+                    sync_handle, thread_handle, &retire_fd);
         }
 
-        *outRetireFence = dup(retire_fd);
-        close(retire_fd);
+        if (retire_fd < 0) {
+            hostCon->lock();
+            EGLint waitResult = rcEnc->rcClientWaitSyncKHR(rcEnc, sync_handle,
+                    EGL_SYNC_FLUSH_COMMANDS_BIT_KHR, EGL_FOREVER_KHR);
+            if (waitResult != EGL_CONDITION_SATISFIED_KHR) {
+                rcEnc->rcDestroySyncKHR(rcEnc, sync_handle);
+                hostCon->unlock();
+                ALOGE("%s: host GPU fence wait failed (%d)", __FUNCTION__, waitResult);
+                return Error::NoResources;
+            }
+            hostCon->unlock();
+        }
+
+        for (size_t i = 0; i < mReleaseLayerIds.size(); ++i) {
+            mReleaseFences.push_back(retire_fd >= 0 ? dup(retire_fd) : -1);
+        }
+
+        *outRetireFence = retire_fd >= 0 ? dup(retire_fd) : -1;
+        if (retire_fd >= 0) close(retire_fd);
         hostCon->lock();
         rcEnc->rcDestroySyncKHR(rcEnc, sync_handle);
         hostCon->unlock();

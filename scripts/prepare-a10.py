@@ -191,7 +191,10 @@ def file_source(entry, index):
         if pinned:
             check_pin = os.path.join(MODULE, "prebuilt", "arm64", os.path.basename(relative) + ".sha256")
             with open(check_pin, encoding="ascii") as handle:
-                expected = handle.read().strip().upper()
+                fields = handle.read().split()
+            if not fields or len(fields[0]) != 64 or any(ch not in "0123456789abcdefABCDEF" for ch in fields[0]):
+                raise PrepareError("prebuilt/arm64/%s.sha256 格式无效" % os.path.basename(relative))
+            expected = fields[0].upper()
             if digest(source).upper() != expected:
                 raise PrepareError("prebuilt/arm64/%s 的 sha256 与 .sha256 不符" % os.path.basename(relative))
         if relative.startswith("rootfs/"):

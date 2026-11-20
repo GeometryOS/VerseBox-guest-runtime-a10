@@ -12,7 +12,7 @@ prepared-apk/
 downloads/
 rootfs/
 rootfs-index.json
-
+_bin/
 # Build outputs
 artifacts/
 logs/

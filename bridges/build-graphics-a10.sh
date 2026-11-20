@@ -116,8 +116,8 @@ apply_patch() {
     exit 1
 }
 apply_patch "$SRC/platform.patch"
-for name in guest config-handles texture-contexts format-conversions yuv-rgb-rows hwc idle \
-            native-image-lifetime; do
+for name in guest config-handles texture-contexts format-conversions yuv-rgb-rows hwc \
+            native-fence-fallback idle native-image-lifetime; do
     apply_patch "$SRC/desktop/$name.patch"
 done
 grep -q A10VM_NO_SNAPSHOTS "$DER/common/ChecksumCalculator.cpp" || {

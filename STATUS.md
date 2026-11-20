@@ -1,17 +1,9 @@
 # Android 10 运行时仓库 · 真实进度
 
-最后更新：2026-11-19
+最后更新：2026-11-20
 
-一句话：S1 入口、S2 镜像材料链、S3 的运行时闭包都已完成并验证；S4 的 42 件项目产物已经收口，
-其中 39 件由本仓库源码编出，`image/a10vm-init` 按 `_audit/00` §4.4 钉在 `prebuilt/arm64/` 并带 sha256。
-S5 的第二段已经落地：`prepared` 现在由 rootfs 加本仓库产物重新生成，文件 1058、data 2209，
-其中 27 件仍是 pinned，逐条记在 `prepared/prepare-report.json`。
-2026-11-19 晚真机启动已经越过 seed 与 ART 自检，停在框架入口：
-`DesktopBoot.main` 抛 `AssertionError: Wrong guest SDK`，同一份日志还有
-`Dex checksum does not match for dex: /system/framework/services.jar`。
-实例、两个 ROM payload 里的 `services.jar` sha256 都是 `8f02f94c…`，说明铺包内容一致；
-问题是这份被旧流水线改过的框架件与它配套的 odex 不是同一份。当前不改源码、不再重编 libc，
-先把这条作为卡点交接给下一轮。本文只写“现在到哪、下一步单一动作”，产物身份只用字节数与 sha256。
+一句话：APK 导入已由维护者确认修复。ROM 1.0.1 的 HWC host-fence fallback 已编译并通过 ABI/打包校验，但已在实体机实例 `1795154236450` 证实无效：状态栏/导航栏与动画仍抽搐。该实例确实加载 SHA `eeb34ac2…` 的新 HWC；日志仍有 8 条 `No local sync point found`、5 次 35–111 帧跳帧、最高 3,217 ms slow delivery、导航栏窗口冻结 620 ms。不能继续宣称该 fence 机制是根因或已修复。
+错误实验 ROM `dist/versebox-android10-1.0.1-hwc-native-fence-fallback.zip` 保留供取证；原 `prepared/` 与 `1.0.0` ROM 未改。下一步回到同一实例的 `presentDisplay`/SurfaceFlinger buffer acquire-release 时间线，定位实际停住的是哪个 producer/consumer，不做新构建直到能说明可证伪判据。
 
 ## 0. 新会话从这里开始
 
@@ -20,13 +12,8 @@ S5 的第二段已经落地：`prepared` 现在由 rootfs 加本仓库产物重�
 1. 42 件项目产物已收口：39 件由本仓库源码编出，`image/a10vm-init` 与两个宿主件按字节钉在
    `prebuilt/arm64/`，各自带 `.sha256`。`prepared` 已由 rootfs 与这批产物重新生成，
    1058 个 native、2209 条 data，26 件 pinned，逐条在 `prepared/prepare-report.json`。
-2. 真机已经越过 seed 与 ART：`seed.log` 是 `seed_complete=1`，`art.log` 是 `art_runtime_ready=1`，
-   所有服务进程都起来了。停在框架入口 `DesktopBoot.main` 的 `Wrong guest SDK`，真因已定位：
-   这一版 libc 在编译时用的属性派生树没带 `runtime.patch`，`__system_properties_init` 去读了宿主的
-   `/dev/__properties__`，客体的 `ro.build.version.sdk` 于是变成宿主的 SDK。判据是三个域同一个对象
-   `bionic_libc_bionic_system_property_api.cpp.o` 里有没有 `A10VM_PROPERTIES`，A9 与 A15 有、A10 没有。
-   同一份日志里的 `services.jar` dex 校验和是旧流水线改过 jar 的独立症状，不是这条的原因。
-   取证与推翻过程在 `docs/android10-port/11-进展日志.md` 2026-11-19 晚两节。
+2. 真机已越过 seed、ART 与框架入口并到达 `READY`，当前仍可运行 A10。早期 `Wrong guest SDK` 卡点已通过 libc 属性区修复关闭，取证与修正过程保留在 `docs/android10-port/11-进展日志.md` 的 2026-11-19 记录；这不是本轮图层卡顿的原因。
+   APK 导入已由维护者确认在 Android Studio 新版 app 中恢复；本轮不要求再构建 app 或重复导入测试。
 3. 不许重试的路径在 §8。另外 `bridges/` 的 .gitignore 已改成只排除产物目录，源码目录不再被整体忽略；
    `bootstrap/` 只放 A10 的四个入口类，不搬 `guest-runtime/check` 的共用实现。
    这一轮曾给 `vendor/runtime/filesystem/GuestPaths.cpp` 加过属性区豁免，已按字节回滚，
@@ -140,10 +127,12 @@ WindowsApps 里那个 `python3.exe` 是商店占位，跑不起来。
 | 项 | 状态 | 为什么没验、下一步用哪一行验 |
 | --- | --- | --- |
 | 属性区补丁在真机上生效，框架入口已过 | `files/devices/1795079181903/vm/framework-server.log` 出现 `desktop_guest_sdk=29`；同一实例 `server` 进程的 `maps` 里 `boot-properties` 出现 6 次、`/dev/__properties__` 0 次 | 2026-11-19 19:01 实测，pid 27953；`A10VM_PROPERTIES` 指向 `vm/boot-properties`。2026-11-19 19:03 已可启动；19:16 重装后新实例 `1795085438495` 再次 `desktop_guest_sdk=29`，`startup-events.log` 58.75 s 打出 `READY client: desktop_services_ready=1` |
-| 日志镜像改成按批写 | 未上机 | `GuestLogTail.forward()` 原来每行一条 `Log.i`，A10 开机期每秒几百行，把宿主 UI 与客体帧一起拖住。现在攒 8 KB 写一条，行前缀与内容不变。判据：`grep -c "Log.i(TAG"` 是 2；开机后 `adb logcat -d -s A10VM_GUEST` 记录数降两个数量级且不缺行 |
+| APK 导入 | 用户已确认新版 app 导入恢复 | 设备后续日志也显示 create `[103861457]`、write `Success: streamed 2616411 bytes`、commit `Success`，三个命令均 `guest_command_result=0`；本轮停止要求重复测试，焦点转回 ROM HWC |
+| Guest log 镜像批写 | 已实现于共享 app runtime；用户确认新版 app 已构建 | SDK 29 每条 guest 日志按最多 3,000 UTF-8 字节合批，纯 Java 测试和模块编译通过。该项不作为本轮局部图层冻结的根因或修复结论，不再要求用户重复验证 app 链 |
+| HWC 缺 goldfish_sync 的 host-wait fallback | 已在 `android10@1.0.1` 实机验证无效，图层抽搐仍存在 | 新实例 `1795154236450` 实际加载的 HWC SHA 为 `eeb34ac2…`，与测试 ROM 内相同；但仍有 8 条 `No local sync point found`、Skipped 41/104/35/111/110 frames、`Slow delivery 3217ms`，导航栏 `Screen frozen +620ms`。logcat 无 host fence wait failure。不得再把该改动称作修复；host-wait 只是已证伪的单变量实验，下一轮须检查 A10 SF/HWC present/release fence 的 buffer 生命周期及 app 渲染循环 |
 | 整链构建（prepared → zip → prepared-apk） | 已验证过一次（2026-11-19） | 那次跑通了三个阶段，但入口当时被空的 `runtime-inputs/guest-runtime` 抢走来源，抽 prepared 前先把旧 `prepared` 删了。现在来源判定改成看清单文件，且先写 `prepared.staging` 校验通过再换。重跑判据仍是 `build finished` 三行路径与 `--verify-only` 退出码 |
 | `--plan-only` 在 Linux 上的行为 | 未验证 | 本机只有 Git 自带的 `sh`，与 ubuntu-24.04 的 dash 有差异；CI 补上之后由 CI 验 |
-| 真机启动 | 未验证，本轮无改动 | 本轮没有触及运行路径与客体内容，没有装机 |
+| 局部图层停更根因 | 仍未解决；host-wait ROM 已证伪 | 新实例 `1795154236450`，ROM 1.0.1，设备载入 HWC SHA `eeb34ac2…`。compositor 8 条 sync warning；server 有 Choreographer skip 41/104/35/111/110 帧、最大 slow delivery 3,217 ms、NavigationBar0 frozen 620 ms；无 HWC wait failure。上述同时存在但不能据此假定同一根因。下一步按同一时段采集 SF/HWC/producer queue+latch+release 序列并检查状态栏对应 layer 的 buffer frame number |
 | `--skip-extract` 与 `--skip-rom` 的真实执行 | 未验证 | 只在 plan-only 里验了跳过分支的打印；真实执行属于 S5 之后 |
 | 符号链接与硬链接没有落盘 | 未验证，设计如此 | 索引记着 573 个符号链接的目标，S5 的 stager 按索引还原。要在真机上判，看实例里 `LIB`、`EXEC` 行与文件 mode |
 | `build-a10.sh` 没有调用 fetch 与 extract | 未接线 | 两条来源并存到 S5；接线方式写在 `BUILD.md` §1.1 |
@@ -174,7 +163,7 @@ WindowsApps 里那个 `python3.exe` 是商店占位，跑不起来。
 
 ## 5. 当前卡点
 
-当前只有一条真机卡点，而且已经改完等复测：
+以下保留 2026-11-19 已关闭的启动卡点。APK 导入已由维护者确认修复；当前唯一主线是 A10 ROM 的 status/navigation layer 在高频更新后停住。ROM 1.0.1 的 HWC fallback 已在实体机确认无效；下一动作只读 SF/HWC/BufferQueue 时间线，满足判据前不再构建。
 
 1. 框架入口 `Wrong guest SDK` 已关闭。真因是这一版 libc 编译时用的属性派生树没带 `runtime.patch`，
    `__system_properties_init` 读的是宿主的 `/dev/__properties__`。重编后真机 `desktop_guest_sdk=29`，
@@ -202,36 +191,17 @@ WindowsApps 里那个 `python3.exe` 是商店占位，跑不起来。
 ubuntu-base 的 tar.gz（已放在 `D:\my123\_a10-tools\`）。另外这台机器的 DNS 会把
 `archive.ubuntu.com` 解析到 `28.0.0.163`（不可达），WSL 里的 `sources.list` 已换成可用的国内镜像。
 
-## 6. 下一步的单一动作
+## 6. 当前图形排查交接（2026-11-20，HWC 1.0.1 fallback 已证伪）
 
-安装第二版 APK 后，请人启动一次 Android 10，Agent 自己读 `files/devices/<id>/session-state.log`、
-`vm/startup-events.log` 与 `vm/seed.log`，只比对 `seed-properties` 那一条：
+APK 导入已由维护者确认 Android Studio 新版 app 修复；ROM `android10@1.0.1` 实例 `1795154236450` 的 create/write/commit 也成功，session `[638585845]`、stream 2,616,411 B，三个命令 `guest_command_result=0`。该问题关闭，不再要求重测导入。
 
-- 如果 `属性初始化` 不再报 `libunwind.so not found`，下一道闸门是 `a10vm-init` 的
-  `guest bootstrap` 行与 ART 自检；
-- 如果还报别的 `.so not found`，按 NEEDED 逐件补，不扩大改动面。
+HWC fallback 已实测无效。设备 `rootfs/vendor/lib64/hw/hwcomposer.ranchu.so` 是链接至 `vm/libs/liba10vm-guest-hwcomposer.ranchu.so` 的 symlink，目标 SHA `eeb34ac29c68ef3f551f4ec515671ef984ef5c798b57a6bf307e721ad55935f1`，与测试 ROM 完全一致。故失败不是旧 ROM、APK 缓存或测试路径错。
 
-真机过到 `READY` 之后，才做 S5 剩下的两块：两个 check dex 自产，以及把 `bootstrap/` 四个入口类
-接进 `framework-check.dex` 与清单 `runtimeProfile`。这两块都要单独一轮、单独判据。
+同一新版实例的日志：compositor 179 行、8 条 `No local sync point found`（Gallery/Launcher/Settings layer）；server 11,900 行、5 次 Choreographer skipped（41、104、35、111、110 帧）、3 次 slow delivery（最大 3,217 ms）、5 次 slow dispatch、`NavigationBar0` screen frozen 620 ms。没有 `host GPU fence wait failed`；host wait fallback 已返回，但画面现象没有消失。
 
-原始清单（供参考，已交的划掉）：`image/a10vm-init`、
-`libmediaplayerservice.so`、`libstagefright_httplive.so`、`libresourcemanagerservice.so`、
-`libnetd_client.so`、`audio.primary.a10vm.so`、`drm`、`media`、`media-drm`、`media-omx`。
+ROM 1.0.1 当前作为**无效实验**保留。下一步先取同一刷新卡停窗口的 SurfaceFlinger/HWC/BufferQueue 时间线，逐层对齐 frame number、queue/latch/release fence 与 SystemUI producer；识别 buffer 不推进属于 producer、latch、release 还是 framework 主线程。没有这一条判据之前不再加 fence guard、不再构建、不再安装 ROM。
 
-做法分两类：`libmediaplayerservice` 与 `libstagefright_httplive` 是打了补丁的客体库，
-配方在 `guest-runtime/build-media.sh` 与 `build-media-tools.sh`；`drm`、`media`、`media-drm`、
-`media-omx` 是四件可执行文件，配方在 `build-media.sh`；`a10vm-init` 与 `libdexfile` 要单独取证
-它俩今天从哪来（`image/a10vm-init` 是 2,182,048 B 的 PIE，`libdexfile` 296,272 B）。
-判据：十一件的字节数与 sha256 记进 §9；`llvm-nm -D --defined-only` 对 `prepared` 同名副本缺零个；
-NEEDED 只落在本仓库的运行时、binder 组与镜像的库上；删产物重建同哈希。
-
-搬完这一组才允许写 S5：`scripts/prepare-a10.py` 把 rootfs 加这 42 件加 dex 合成 `prepared`。
-
-按 `prepared` 与 `rootfs` 逐件比对，`prepared` 的 1,058 个 native 条目里有 42 件不在镜像里，
-分七组：运行时闭包 5（S3 已完成）、binder 10（本组完成 9 件，registry 的 `libc++` 用镜像那份）、
-图形 6、属性服务 3、设备与日志 5、媒体与 drm 11、宿主侧 2。
-宿主侧那两件是 `desktop-gpu-host` 与 `host-devices`，跑在 app 进程里，按契约留在 APK 的 `lib/`，不进 ROM。
-清单在 `_bin/a10/evidence/20261119-prepared-provenance.txt`。
+以下紧接的 S5 首包/材料清单是 2026-11-19 的历史记录，保留其当时边界；不是当前卡点，也不要求重做已经通过的 seed/ART 闸门。当前唯一未关闭项和下一步判据见本节开头的 2026-11-20 图形交接，以及 `docs/android10-port/11-进展日志.md` 14:00 实测记录。
 
 
 ## 7. 已知限制

@@ -14,7 +14,13 @@ public final class DesktopBoot {
         GuestMemory.start();
         PrivateVolumes.register();
         PrivateKeyStore.register();
-        GuestCredentialCapabilities.register();
+        // Registering an extra Binder endpoint before SystemServer starts is what separates the
+        // rebuilt DEX from the shipped one; with the shipped a10binder transport it leaves the
+        // broker link refused (errno 111) and later transacts fail with EBADF. Keep it opt-in
+        // until the transport handles an extra endpoint across boot.
+        if ("1".equals(System.getenv("A10VM_CREDENTIAL_STUB")))
+            GuestCredentialCapabilities.register();
+        GuestGatekeeperStub.register();
         GuestNetworks.register();
         GuestConnectivity.start();
         GuestCapabilities.configure();

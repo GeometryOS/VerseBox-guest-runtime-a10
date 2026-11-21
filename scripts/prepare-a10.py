@@ -118,8 +118,8 @@ PINNED_DATA_REASON = {
 }
 CASE_PREFIX = "guest-runtime/rom-encoded/"
 GENERATED_DATA = {
+    "guest-runtime/framework-check.dex": "prebuilt/framework-check.dex",
     "guest-runtime/runtime-check.dex": "runtime/build/dex/out/runtime-check.dex",
-    "guest-runtime/framework-check.dex": "runtime/build/dex/out/framework-check.dex",
     "guest-runtime/guest.prop": "runtime/build/data/guest.prop",
     "guest-runtime/rootfs/system/framework/services.jar": "runtime/build/data/rootfs/system/framework/services.jar",
     "guest-runtime/rootfs/system/etc/seccomp_policy/mediacodec.policy": "runtime/build/data/rootfs/system/etc/seccomp_policy/mediacodec.policy",

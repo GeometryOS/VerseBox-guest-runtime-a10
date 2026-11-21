@@ -27848,8 +27848,8 @@
     },
     {
       "name": "guest-runtime/framework-check.dex",
-      "bytes": 185612,
-      "sha256": "4ad2b4b84a09a44cac56c35e6e9690455787435eed29bff04ab4d690d7be74d3"
+      "bytes": 141680,
+      "sha256": "5c2bdfd29db5dfc693de22646d99241ebd2e508ace235f589f57a5311e445c2b"
     },
     {
       "name": "guest-runtime/system-image-paths.json",

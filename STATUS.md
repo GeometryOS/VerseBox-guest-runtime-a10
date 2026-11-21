@@ -9,7 +9,7 @@
 
 三句话交接：
 
-1. A10 S5 源码解耦正在进行：77 个 Java/framework 源已按字节迁入，13 件 A10-generated data 已通过身份哈希，`prepare-a10.py --check` 通过。当前检查结果为 1058 个 native、2207 条 data、12 件 pinned。旧 `prepared/` 仍保留，不代表新源闭包已完整。bridge jar 与其 init rc 已从新 inventory 移除，因为当前 host startup 不执行 guest init；已有 prepared、ROM 和实例未改。详见 `_docs/android10-port/29-S5源码解耦取证与当前边界.md`。
+1. A10 交付基线已定：framework-check.dex 用随仓库固定的旧 prepared 版本（prebuilt/framework-check.dex，141680 B，5c2bdfd2…），runtime-check.dex、services.jar 与全部 data 由源码生成。payload 17485ee2…，设备实例 1795265969872 实测 desktop_home_drawn=1、desktop_services_ready=1、RUNNING。`prepare-a10.py --check` 为 1058 native、2207 data、11 pinned。旧 `prepared/` 仍保留，不代表新源闭包已完整。bridge jar 与其 init rc 已从新 inventory 移除，因为当前 host startup 不执行 guest init；已有 prepared、ROM 和实例未改。详见 `_docs/android10-port/29-S5源码解耦取证与当前边界.md`。
 2. 真机已越过 seed、ART 与框架入口并到达 `READY`，当前仍可运行 A10。早期 `Wrong guest SDK` 卡点已通过 libc 属性区修复关闭，取证与修正过程保留在 `docs/android10-port/11-进展日志.md` 的 2026-11-19 记录；这不是本轮图层卡顿的原因。
    APK 导入已由维护者确认在 Android Studio 新版 app 中恢复；本轮不要求再构建 app 或重复导入测试。
 3. 不许重试的路径在 §8。另外 `bridges/` 的 .gitignore 已改成只排除产物目录，源码目录不再被整体忽略；
@@ -36,8 +36,8 @@ WindowsApps 里那个 `python3.exe` 是商店占位，跑不起来。
 | S2 镜像与 rootfs | 完成（2026-11-19）：fetch 与 extract 都跑通，prepared 还没切 | 本文 §2 的镜像四条；产物是 `downloads/`、`rootfs/`、`rootfs-index.json` |
 | S3 源码运行时（C/C++） | 完成（2026-11-19）：闭包五件自建产物齐，第六件 `libc++` 取证确认取自镜像；`dex-cache` 判定不入链 | `runtime/build/{lib/liba10vm-bootstrap.a, bin/source-linker64, lib/libc.so, lib/libdl.so, lib/libm.so, lib/libunwind.so}`，判据见 §2；上游 1,562 个文件校验通过 |
 | S4 桥与图形（C/C++） | 完成（2026-11-19）：binder、图形、属性服务、设备与日志、媒体与 drm 五组完成；`image/a10vm-init` 与两个宿主件按 `_audit/00` §4.4 钉住 | `bridges/lib/registry` 七个库与 `bridges/bin` 两个进程、`bridges/graphics/lib` 六个库、`bridges/properties` 三件、`bridges/devices/lib` 五个库、`bridges/media` 七件；导出面对 `prepared` 那份缺零个；`prebuilt/arm64/` 三件带 `.sha256`，判据见 §2 与 §10 |
-| S5 prepared 与 dex | 进行中（2026-11-21）：A10-local data 生成和 source-first 校验已接入；DEX 源闭包 77 文件已完整迁入，API 35 javac/D8 with min-api 29 已重建两个 DEX 并匹配更新后的身份；prepare --check 通过，ROM verify 与 app 启动验证仍未做；bridge/init 遗留路径从新 inventory 移除 | `python scripts/prepare-a10.py --check` 退出码 0，1058 个 native、2207 条 data、12 件 pinned；`python scripts/verify-a10-generated-data.py` 验证 13 件 data 字节与 SHA-256；详见 `_docs/android10-port/29-S5源码解耦取证与当前边界.md` |
-| S6 发布与 app 入库 | 未开始 | S5 缺口闭合并验证完整重建前，不建立 CI/release |
+| S5 prepared 与 dex | 交付基线（2026-11-21）：framework-check.dex 固定为旧 prepared（仓库内 prebuilt/framework-check.dex 加 .sha256），runtime-check.dex、services.jar 与全部 data 由源码生成；源码重建的新 framework-check.dex 仍不能出桌面，替换条件见 coding-log | payload 17485ee2…，ROM verify 通过；设备实例 1795265969872 的 desktop_home_drawn=1、desktop_services_ready=1、RUNNING；`prepare-a10.py --check` 1058 native、2207 data、11 pinned |
+| S6 发布与 app 入库 | CI 工作流已落位，未在 Actions 实跑 | `guest-runtime-a10/.github/workflows/build.yml` 用 build-a10-data + `build-a10.sh --from-sources` 构建基线；首次运行前不写 CI 绿 |
 
 ## 2. 已验证
 

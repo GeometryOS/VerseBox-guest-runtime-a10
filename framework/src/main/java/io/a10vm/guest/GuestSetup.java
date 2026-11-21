@@ -31,12 +31,6 @@ final class GuestSetup {
         Class<?> activity = Class.forName("android.app.ActivityThread");
         Object thread = activity.getMethod("currentActivityThread").invoke(null);
         Context context = (Context) activity.getMethod("getSystemContext").invoke(thread);
-        // A guest desktop lives in a host window that owns the real screen state; the guest's
-        // own inactivity timer would otherwise set SurfaceFlinger power mode 0 while the host
-        // stays awake, and the window freezes on the last frame.
-        ContentResolver display = context.getContentResolver();
-        Settings.System.putInt(display, Settings.System.SCREEN_OFF_TIMEOUT, Integer.MAX_VALUE);
-        Settings.Global.putInt(display, Settings.Global.STAY_ON_WHILE_PLUGGED_IN, 7);
         GuestHardwareApplications.configure(context);
         GuestWebViewProviders.configure(context);
         context.getPackageManager().setComponentEnabledSetting(new android.content.ComponentName(
@@ -45,15 +39,6 @@ final class GuestSetup {
                 android.content.pm.PackageManager.DONT_KILL_APP);
         GuestInputMethods.configure(context, !Files.exists(marker), deadline);
         if (Files.exists(marker)) return;
-        if (service.invoke(null, "android.service.gatekeeper.IGateKeeperService") == null) {
-            // The image ships gatekeeperd and its HAL, but this host never runs guest init, so
-            // neither is started. Marking the device provisioned makes LockSettingsService call
-            // IGateKeeperService.reportDeviceSetupComplete() on a null binder, and the resulting
-            // NullPointerException kills system_server. Stay unprovisioned until gatekeeper runs.
-            Files.createFile(marker);
-            System.out.println("guest_setup_gatekeeper_missing=1");
-            return;
-        }
         ContentResolver resolver = context.getContentResolver();
         if (Settings.Secure.getString(resolver, "sysui_tuner_version") == null &&
                 !Settings.Secure.putInt(resolver, "sysui_tuner_version", 4))

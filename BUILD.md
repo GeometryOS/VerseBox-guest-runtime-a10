@@ -11,6 +11,12 @@
 现阶段的 `prepared` 来自参考 APK 的保真抽取，来源决定沿用 `docs/rom-package/05` §4 那次过渡决定。
 抽取只搬运字节，不生成内容，也不改客体任何文件。
 
+交付基线走源码链：`sh scripts/build-a10.sh --from-sources`。它先跑 `scripts/build-a10-data.sh`
+生成 runtime-check.dex、services.jar、guest.prop、VINTF、seccomp 与 system-image-paths，
+再由 `scripts/prepare-a10.py --apply` 落位；framework-check.dex 固定为
+`prebuilt/framework-check.dex`（141680 B，带 `.sha256`），因为源码重建版仍不能让
+Launcher3 完成绘制。设备实例 1795265969872 实测 `desktop_home_drawn=1`。
+
 ```text
 参考 APK（<仓库父目录>/_bin/A10VM.apk）或 app 仓库的 runtime-inputs/guest-runtime
         │  scripts/extract-a10-inputs.py      逐条核对 bytes 与 sha256，不符就失败

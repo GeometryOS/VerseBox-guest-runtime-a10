@@ -51,12 +51,22 @@ sed '/#include "hidl-gen_y.h"/a\
 #define YYLTYPE yy::parser::location_type' "$HIDL/hidl-gen_l.ll" > "$GENP/hidl-gen_l.ll"
 flex -o "$GENP/hidl-gen_l.cpp" "$GENP/hidl-gen_l.ll"
 
-# AOSP 10 的这份代码是给当年的 clang 写的：现代 clang 要显式带上这几个 C 头，
-# 否则 std::strlen、strerror 这类名字找不到。宿主工具上的这种补偿不影响产物。
+# AOSP 10 的这份代码是给当年的 clang + libc++ 写的：libc++ 的头之间会互相带，
+# 所以 EnumType.cpp 用 std::reverse 却没写 <algorithm> 也能编过。宿主这边不一样：
+# Linux 上 clang++ 默认挂在 libstdc++ 上，GCC 13 起不再互相带（std::reverse、
+# std::sort 这类名字直接找不到）；Windows 上 clang++ 挂 MSVC 的 STL，仍然互相带，
+# 所以本机能编过、CI 编不过。补的是宿主工具自己的头，hidl-gen 产出的头一个字都不变。
+# 下面的名单是按这 45 个翻译单元（43 份源码加 bison/flex 生成的两份）实际用到的
+# std:: 名字点的，不是把所有头都摊上来。
 compile() {
     clang++ -std=gnu++17 -O2 -fPIC -DNDEBUG -w \
         -include string.h -include stdint.h -include cstdint \
-        -include cstring -include cstdio -include cstdlib \
+        -include cstring -include cstdio -include cstdlib -include cstddef \
+        -include algorithm -include array -include functional -include limits \
+        -include map -include memory -include mutex -include set -include utility \
+        -include vector -include string -include string_view \
+        -include iostream -include ostream -include sstream -include fstream \
+        -include regex -include unordered_map -include unordered_set \
         -I"$BASE/include" -I"$UP/system/core/liblog/include" \
         -I"$UP/system/core/libutils/include" \
         -I"$HIDL" -I"$HIDL/host_utils/include" -I"$HIDL/host_utils/include/hidl-util" \

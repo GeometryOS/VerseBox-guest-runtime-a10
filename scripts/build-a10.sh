@@ -1,7 +1,8 @@
 #!/bin/sh
 # Android 10 运行时仓库的一条链：prepared → ROM 包 → APK 侧 payload。
 #
-#   scripts/build-a10.sh                 # 三步都做（prepared / dist zip / prepared-apk）
+#   scripts/build-a10.sh                 # prepared（参考 APK）→ ROM 包 → prepared-apk
+#   scripts/build-a10.sh --from-sources  # rootfs + A10 源生成 prepared → ROM 包 → prepared-apk
 #   scripts/build-a10.sh --skip-extract   # 只跳过 prepared，复用 prepared/（改过 rom/ 配置时用这个）
 #   scripts/build-a10.sh --skip-rom       # 只出 prepared 与 prepared-apk，不产 zip
 #   scripts/build-a10.sh --rom-version 1.1.0 --lib-mode rom
@@ -29,6 +30,7 @@ fi
 step() { printf '\n== %s\n' "$1"; }
 SKIP_EXTRACT=0
 SKIP_ROM=0
+FROM_SOURCES=0
 PLAN_ONLY=${A10_PLAN_ONLY:-0}
 LIB_MODE=
 ROM_VERSION=
@@ -36,14 +38,16 @@ APK=
 while [ $# -gt 0 ]; do
     case "$1" in
         --skip-extract) SKIP_EXTRACT=1 ;;
+        --from-sources) FROM_SOURCES=1 ;;
         --skip-rom) SKIP_ROM=1 ;;
         --rom-version) shift; ROM_VERSION=${1:?--rom-version 需要参数} ;;
         --lib-mode) shift; LIB_MODE=${1:?--lib-mode 需要参数} ;;
         --apk) shift; APK=${1:?--apk 需要参数} ;;
         --plan-only) PLAN_ONLY=1 ;;
         -h|--help)
-            printf 'usage: build-a10.sh [--skip-extract] [--skip-rom] [--rom-version X.Y.Z] [--lib-mode apk|rom|both] [--apk PATH] [--plan-only]\n'
+            printf 'usage: build-a10.sh [--from-sources] [--skip-extract] [--skip-rom] [--rom-version X.Y.Z] [--lib-mode apk|rom|both] [--apk PATH] [--plan-only]\n'
             printf '\n'
+            printf '  --from-sources  从 rootfs 和 A10 源生成 prepared，不读取参考 APK\n'
             printf '  --skip-extract  只跳过 prepared 这一步，复用现有 prepared/；ROM 包与 prepared-apk 照常重做\n'
             printf '  --skip-rom      不产 ROM 包，只出 prepared 与 prepared-apk\n'
             printf '  --rom-version   覆盖 rom/rom.properties.yaml 的 defaultRomVersion\n'
@@ -79,6 +83,8 @@ if [ "$PLAN_ONLY" = 1 ]; then
     printf '  ROM identity  : %s %s\n' "${ROM_ID:-（未读到）}" "${ROM_VERSION:-（未读到）}"
     if [ "$SKIP_EXTRACT" = 1 ]; then
         printf '  prepared      : 复用 %s/prepared（--skip-extract）\n' "$MODULE"
+    elif [ "$FROM_SOURCES" = 1 ]; then
+        printf '  prepared      : rootfs + A10 source generators -> prepare-a10.py --apply\n'
     else
         if [ -n "$APK" ]; then
             prepare_source=$APK
@@ -99,7 +105,7 @@ if [ "$PLAN_ONLY" = 1 ]; then
         printf '  ROM package   : %s\n' "$ROM_OUT"
     fi
     printf '  APK payload   : %s/prepared-apk（旧格式 assets/guest-runtime/lib/**）\n' "$MODULE"
-    printf '  image chain   : scripts/fetch-redroid10.py -> scripts/extract-rootfs.py（已可跑，还没接进 prepared，S5）\n'
+    printf '  image chain   : scripts/fetch-redroid10.py -> scripts/extract-rootfs.py（source mode requires rootfs ready）\n'
     printf '  APK           : 由 app 仓库消费 prepared-apk/ 编出，本脚本不跑 Gradle\n'
     printf '  nothing was executed (plan-only).\n'
     exit 0
@@ -111,6 +117,11 @@ if [ "$SKIP_EXTRACT" = 1 ]; then
         printf '! prepared 不存在，去掉 --skip-extract 先跑抽取\n' >&2
         exit 1
     fi
+elif [ "$FROM_SOURCES" = 1 ]; then
+    step "A10 source chain: runtime data, DEX and services.jar"
+    sh scripts/build-a10-data.sh
+    step "prepared（rootfs + A10 source outputs → prepared/）"
+    "$PY" scripts/prepare-a10.py --apply
 else
     step "prepared（参考 APK → prepared/）"
     if [ -n "$APK" ]; then

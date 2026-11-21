@@ -1,6 +1,6 @@
-import com.android.tools.smali.dexlib2.DexFileFactory;
-import com.android.tools.smali.dexlib2.Opcodes;
-import com.android.tools.smali.dexlib2.iface.DexFile;
+import org.jf.dexlib2.DexFileFactory;
+import org.jf.dexlib2.Opcodes;
+import org.jf.dexlib2.iface.DexFile;
 import java.io.*;
 import java.nio.file.*;
 import java.util.*;
@@ -14,7 +14,7 @@ final class DexArchive {
             throw new IllegalArgumentException("Preserve the original archive");
         Files.createDirectories(output.toAbsolutePath().getParent());
         Map<String, byte[]> replacements = new HashMap<>();
-        com.android.tools.smali.dexlib2.iface.MultiDexContainer<?> container =
+        org.jf.dexlib2.iface.MultiDexContainer<?> container =
                 DexFileFactory.loadDexContainer(input.toFile(), Opcodes.forApi(29));
         for (String name : container.getDexEntryNames()) {
             DexFile source = container.getEntry(name).getDexFile();

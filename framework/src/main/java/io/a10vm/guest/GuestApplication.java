@@ -12,8 +12,12 @@ public final class GuestApplication {
                     (android.os.SystemClock.elapsedRealtimeNanos() - Long.parseLong(started)) / 1000000);
         String parent = System.getenv("A10VM_APPLICATION_PARENT_PID");
         if (parent != null) {
+            // PDEATHSIG still kills this process the moment the container dies. The numeric
+            // comparison only rejects a process that was already orphaned: A10 children are
+            // reparented to the host app process (a child subreaper, pid 6591 here), so the
+            // recorded container pid legitimately differs from getppid() at entry.
             android.system.Os.prctl(1, android.system.OsConstants.SIGKILL, 0, 0, 0);
-            if (android.system.Os.getppid() != Integer.parseInt(parent))
+            if (android.system.Os.getppid() == 1)
                 throw new IllegalStateException("Guest application parent exited");
         }
         ProcessEvidence.report("application");

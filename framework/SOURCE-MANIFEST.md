@@ -8,10 +8,10 @@ The files were copied byte-for-byte from the legacy Android 10 runtime; the lega
 | Input | Source rule | Count |
 | --- | --- | ---: |
 | `runtime-check.dex` | `guest-runtime/check/RuntimeCheck.java`, `DirectoryCheck.java`, `ProcessEvidence.java` | 3 |
-| `framework-check.dex` | A10-owned copies of the complete legacy `build-checks.sh` source list plus `guest-runtime/test/AppRuntimeOptionsCheck.java`; `ProcessEvidence.java` is shared into both DEX inputs | 74 source files |
+| `framework-check.dex` | A10-owned copies of the complete legacy `build-checks.sh` source list plus `guest-runtime/test/AppRuntimeOptionsCheck.java`; `ProcessEvidence.java` is shared into both DEX inputs | 75 source files |
 | Framework adapters | A10-owned copies of `guest-runtime/framework-adapters/*.java` | 2 |
 
-The A10 source tree contains 77 unique Java files: 74 from the legacy build-checks source list, 1 extra AppRuntimeOptionsCheck fixture, and 2 framework adapters. Runtime DEX uses 3 of those files; ProcessEvidence is shared across both DEX inputs. All copied files have the same SHA-256 as their legacy source.
+The A10 source tree contains 77 unique Java files: 74 from the legacy build-checks source list, 1 extra AppRuntimeOptionsCheck fixture, and 2 framework adapters. The framework DEX compiles 75 sources; runtime DEX compiles RuntimeCheck, DirectoryCheck and ProcessEvidence, with ProcessEvidence shared across both DEX inputs. All copied files have the same SHA-256 as their legacy source.
 The source package remains `io.a10vm.guest` because the class names are part of the guest runtime contract.
 
 ## Legacy DEX residuals

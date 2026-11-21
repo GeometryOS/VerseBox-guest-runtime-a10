@@ -104,8 +104,7 @@ PINNED_PROJECT_REASON = {
 }
 # 允许从参考 prepared 取的 data 件。只放旧流水线生成、本仓库还没有生成器的对象。
 PINNED_DATA_REASON = {
-    "guest-runtime/rootfs/system/framework/services.jar": "旧流水线改过，生成器尚未迁入",
-    "guest-runtime/rootfs/system/etc/seccomp_policy/mediacodec.policy": "旧流水线改过，生成器尚未迁入",
+        "guest-runtime/rootfs/system/etc/seccomp_policy/mediacodec.policy": "旧流水线改过，生成器尚未迁入",
     "guest-runtime/rootfs/vendor/etc/seccomp_policy/mediacodec.policy": "旧流水线改过，生成器尚未迁入",
     "guest-runtime/rootfs/vendor/etc/vintf/manifest/android.hardware.sensors@2.0.xml": "旧流水线改过，生成器尚未迁入",
     "guest-runtime/rootfs/vendor/etc/vintf/manifest/android.hardware.gnss@2.0-service.xml": "旧流水线改过，生成器尚未迁入",
@@ -122,6 +121,7 @@ GENERATED_DATA = {
     "guest-runtime/runtime-check.dex": "runtime/build/dex/out/runtime-check.dex",
     "guest-runtime/framework-check.dex": "runtime/build/dex/out/framework-check.dex",
     "guest-runtime/guest.prop": "runtime/build/data/guest.prop",
+    "guest-runtime/rootfs/system/framework/services.jar": "runtime/build/data/rootfs/system/framework/services.jar",
     "guest-runtime/rootfs/system/etc/seccomp_policy/mediacodec.policy": "runtime/build/data/rootfs/system/etc/seccomp_policy/mediacodec.policy",
     "guest-runtime/rootfs/vendor/etc/seccomp_policy/mediacodec.policy": "runtime/build/data/rootfs/vendor/etc/seccomp_policy/mediacodec.policy",
     "guest-runtime/rootfs/vendor/etc/seccomp_policy/mediaextractor.policy": "runtime/build/data/rootfs/vendor/etc/seccomp_policy/mediaextractor.policy",

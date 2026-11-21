@@ -49,7 +49,7 @@ def d8_argv(d8: Path, args: list[str]) -> list[str]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description="Build A10 runtime and framework check DEX")
-    parser.add_argument("--android-jar", type=Path, default=None)
+    parser.add_argument("--android-jar", type=Path, default=None, help="Android 35 android.jar used by javac")
     parser.add_argument("--d8-lib", type=Path, default=None)
     parser.add_argument("--build-tools", type=Path, default=None)
     parser.add_argument("--min-api", type=int, default=29)
@@ -58,7 +58,7 @@ def main() -> int:
 
     sdk = Path(os.environ.get("ANDROID_HOME") or os.environ.get("ANDROID_SDK_ROOT") or "")
     android_jar = args.android_jar or Path(os.environ.get("A10_ANDROID_JAR") or
-        (sdk / "platforms" / "android-29" / "android.jar"))
+        (sdk / "platforms" / "android-35" / "android.jar"))
     d8_lib = args.d8_lib or Path(os.environ.get("A10_D8_LIB") or
         (sdk / "platforms" / "android-35" / "android.jar"))
     build_tools = args.build_tools or Path(os.environ.get("A10_BUILD_TOOLS") or
@@ -68,7 +68,7 @@ def main() -> int:
     if not d8.is_file():
         d8 = build_tools / ("d8.cmd" if os.name == "nt" else "d8")
     if not android_jar.is_file():
-        raise SystemExit("missing Android API 29 javac jar: " + str(android_jar))
+        raise SystemExit("missing Android API 35 javac jar: " + str(android_jar))
     if not d8_lib.is_file():
         raise SystemExit("missing D8 platform library jar: " + str(d8_lib))
     if not d8.is_file():

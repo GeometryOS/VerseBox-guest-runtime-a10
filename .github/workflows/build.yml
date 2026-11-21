@@ -1,0 +1,231 @@
+name: Build A10 runtime
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+    paths-ignore:
+      - release/**
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: a10-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 300
+    env:
+      ANDROID_HOME: /usr/local/lib/android/sdk
+      ANDROID_SDK_ROOT: /usr/local/lib/android/sdk
+      ANDROID_NDK_HOME: /usr/local/lib/android/sdk/ndk/29.0.14206865
+      A10_NDK: /usr/local/lib/android/sdk/ndk/29.0.14206865
+      PYTHON: python3
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Install Android platform, build-tools and NDK
+        run: |
+          set -e
+          SDKMANAGER="${ANDROID_HOME}/cmdline-tools/latest/bin/sdkmanager"
+          if [ ! -x "${SDKMANAGER}" ]; then SDKMANAGER=$(command -v sdkmanager || true); fi
+          if [ -z "${SDKMANAGER}" ] || [ ! -x "${SDKMANAGER}" ]; then
+            echo "no sdkmanager in $ANDROID_HOME/cmdline-tools/latest or PATH" >&2
+            exit 1
+          fi
+          echo "${ANDROID_HOME}/cmdline-tools/latest/bin" >> "${GITHUB_PATH}"
+          yes | "${SDKMANAGER}" --sdk_root="${ANDROID_HOME}" --licenses >/dev/null || true
+          "${SDKMANAGER}" --sdk_root="${ANDROID_HOME}" --install \
+            "platforms;android-35" "build-tools;35.0.0" "ndk;29.0.14206865"
+          test -f "${ANDROID_HOME}/platforms/android-35/android.jar"
+          test -x "${ANDROID_HOME}/build-tools/35.0.0/d8"
+          test -x "${ANDROID_HOME}/build-tools/35.0.0/aidl"
+          test -x "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++"
+          test -x "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld"
+
+      - name: Install host tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends patchelf bison flex libssl-dev
+          command -v patchelf bison flex clang++ g++ javac java
+
+      - name: Cache Redroid image
+        uses: actions/cache@v4
+        with:
+          path: downloads
+          key: a10-image-${{ runner.os }}-${{ hashFiles('scripts/fetch-redroid10.py', 'sources.lock.json') }}
+
+      - name: Cache extracted rootfs
+        uses: actions/cache@v4
+        with:
+          path: |
+            rootfs
+            rootfs-index.json
+          key: a10-rootfs-${{ runner.os }}-${{ hashFiles('scripts/extract-rootfs.py') }}
+
+      - name: Cache AOSP sources and native outputs
+        uses: actions/cache@v4
+        with:
+          path: |
+            runtime/upstream
+            runtime/downloads
+            runtime/build
+            bridges/lib
+            bridges/bin
+            bridges/obj
+            bridges/generated
+            bridges/derived
+            bridges/graphics
+            bridges/media
+            bridges/dex
+            bridges/properties
+            bridges/devices
+          key: a10-native-${{ runner.os }}-${{ hashFiles('runtime/*.sh', 'runtime/*.py', 'runtime/lists/**', 'bridges/*.sh', 'vendor/**') }}
+
+      - name: Fetch Redroid 10 and extract rootfs
+        run: |
+          set -e
+          python3 scripts/fetch-redroid10.py
+          python3 scripts/extract-rootfs.py
+          test -f rootfs-index.json
+          test -f rootfs/system/lib64/libc++.so
+
+      - name: Build A10 runtime closure
+        run: |
+          set -e
+          export PATH="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:${PATH}"
+          sh runtime/build-a10-runtime.sh
+          test -f runtime/build/bin/source-linker64
+          for lib in libc.so libdl.so libm.so libunwind.so; do test -f "runtime/build/lib/$lib"; done
+
+      - name: Build media interface generators
+        run: |
+          set -e
+          sh runtime/build-media-tools.sh
+          test -x runtime/build/media/tools/hidl-gen
+
+      - name: Resolve media link dependencies
+        run: python3 runtime/media-deps.py
+
+      - name: Build binder, graphics, properties and devices
+        run: |
+          set -e
+          export PATH="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:${PATH}"
+          sh bridges/build-binder-a10.sh
+          sh bridges/build-graphics-a10.sh
+          sh bridges/build-properties-a10.sh
+          sh bridges/build-devices-a10.sh
+          test -f bridges/lib/registry/liba10binder.so
+          test -f bridges/graphics/lib/hwcomposer.ranchu.so
+
+      - name: Build media and dex bridges
+        run: |
+          set -e
+          export PATH="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:${PATH}"
+          python3 runtime/fetch-dex-sources.py
+          sh bridges/build-media-a10.sh
+          sh bridges/build-dex-a10.sh
+          test -f bridges/dex/lib/libdexfile.so
+          test -f bridges/media/lib/libnetd_client.so
+
+      - name: Generate A10 runtime data and DEX
+        run: |
+          set -e
+          export ANDROID_HOME="${ANDROID_HOME}"
+          export ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT}"
+          export A10_NDK="${A10_NDK}"
+          sh scripts/build-a10-data.sh
+          python3 scripts/verify-a10-generated-data.py
+
+      - name: Prepare, pack ROM and stage APK payload
+        run: |
+          set -e
+          sh scripts/build-a10.sh --from-sources
+          ls -l dist/
+
+      - name: Verify prepared manifest
+        run: |
+          python3 - <<'PY'
+          import json, pathlib
+          manifest = pathlib.Path("prepared/assets/guest-runtime-inputs.json")
+          assert manifest.is_file(), "missing " + str(manifest)
+          data = json.loads(manifest.read_text(encoding="utf-8"))
+          assert data["guestSdk"] == 29 and data["frameworkSdk"] == 29, "guest SDK mismatch"
+          assert len(data["files"]) == 1058, "unexpected native count"
+          assert len(data["data"]) == 2207, "unexpected data count"
+          for entry in data["files"]:
+              path = pathlib.Path("prepared/jniLibs/arm64-v8a") / entry["name"]
+              assert path.is_file() and path.stat().st_size == entry["bytes"], str(path)
+          for entry in data["data"]:
+              path = pathlib.Path("prepared/assets") / entry["name"]
+              assert path.is_file() and path.stat().st_size == entry["bytes"], str(path)
+          print("prepared ok: %d native, %d data" % (len(data["files"]), len(data["data"])))
+          PY
+
+      - name: Verify source-generated data identities
+        run: python3 scripts/verify-a10-generated-data.py
+
+      - name: Verify ROM package and companions
+        run: |
+          set -e
+          shopt -s nullglob
+          full=()
+          minimal=()
+          for zip in dist/versebox-*.zip; do
+            case "$zip" in *-min.zip) minimal+=("$zip");; *) full+=("$zip");; esac
+          done
+          test "${#full[@]}" -eq 1
+          test "${#minimal[@]}" -eq 1
+          python3 rom/pack-rom.py --verify-only "${full[0]}"
+          python3 - "${minimal[0]}" <<'PY'
+          import sys, zipfile
+          with zipfile.ZipFile(sys.argv[1]) as archive:
+              names = archive.namelist()
+              assert names == ["versebox_properties.yaml"], names
+              text = archive.read(names[0]).decode("utf-8")
+          assert "placeholder: true" in text
+          assert "payloadBytes: 0" in text
+          PY
+          tars=(dist/apk-resident-libs-*.tar)
+          test "${#tars[@]}" -eq 1
+          tar -tf "${tars[0]}"
+
+      - name: Package source-built runtime
+        run: |
+          set -e
+          ref_name="${GITHUB_REF_NAME:-dev}"
+          safe_ref="${ref_name//\//-}"
+          name="a10-runtime-${safe_ref}"
+          tar -czf "${name}.tar.gz" prepared
+          sha256sum "${name}.tar.gz" > SHA256SUMS
+          shopt -s nullglob
+          for f in dist/versebox-*.zip dist/pack-*.json dist/apk-resident-libs-*.tar; do
+            [ -f "$f" ] || continue
+            sha256sum "$f" >> SHA256SUMS
+          done
+          cat SHA256SUMS
+
+      - name: Upload source-built runtime
+        uses: actions/upload-artifact@v4
+        with:
+          name: a10-runtime
+          path: |
+            a10-runtime-*.tar.gz
+            dist/versebox-*.zip
+            dist/*-min.zip
+            dist/apk-resident-libs-*.tar
+            dist/pack-*.json
+            SHA256SUMS
+          if-no-files-found: error

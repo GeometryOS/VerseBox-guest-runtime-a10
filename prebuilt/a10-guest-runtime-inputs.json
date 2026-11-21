@@ -15529,8 +15529,8 @@
     },
     {
       "name": "guest-runtime/rootfs/system/framework/services.jar",
-      "bytes": 5396812,
-      "sha256": "8f02f94ca306bb515a2d70c78a931773bd127ea9daa0cdf24a013b59471fa62f"
+      "bytes": 5403165,
+      "sha256": "eb3fe910114d28c4c4888055fce8f293996315040396ad3a875e54a8ffd28bf3"
     },
     {
       "name": "guest-runtime/rootfs/system/framework/ethernet-service.jar",
@@ -27843,13 +27843,13 @@
     },
     {
       "name": "guest-runtime/runtime-check.dex",
-      "bytes": 6224,
-      "sha256": "a22c8dd74e5a9a37bea412d84f03481c30ee4e0304cc474dd520cf06e4b25597"
+      "bytes": 7532,
+      "sha256": "c85200d9fe540615fd342cebf3b7e049407d5726f0537cb9b6c5f5a4951cf47b"
     },
     {
       "name": "guest-runtime/framework-check.dex",
-      "bytes": 141680,
-      "sha256": "5c2bdfd29db5dfc693de22646d99241ebd2e508ace235f589f57a5311e445c2b"
+      "bytes": 185612,
+      "sha256": "4ad2b4b84a09a44cac56c35e6e9690455787435eed29bff04ab4d690d7be74d3"
     },
     {
       "name": "guest-runtime/system-image-paths.json",

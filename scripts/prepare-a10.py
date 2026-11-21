@@ -113,13 +113,26 @@ PINNED_DATA_REASON = {
     "guest-runtime/rootfs/vendor/etc/seccomp_policy/mediaswcodec.policy": "镜像里没有，旧流水线补的",
     "guest-runtime/rootfs/vendor/etc/vintf/manifest/a10vm-host-devices.xml": "项目生成的数据件",
     "guest-runtime/rootfs/vendor/etc/vintf/manifest/a10vm-media-codec.xml": "项目生成的数据件",
-    "guest-runtime/rootfs/system/framework/a10vm-bridge.jar": "项目生成的数据件",
     "guest-runtime/rootfs/system/bin/a10vm-boot-check": "项目生成的数据件",
-    "guest-runtime/rootfs/system/etc/init/a10vm-display.rc": "项目生成的数据件",
     "guest-runtime/system-image-paths.json": "旧流水线生成，生成器尚未迁入",
     "guest-runtime/guest.prop": "旧流水线生成，生成器尚未迁入",
 }
 CASE_PREFIX = "guest-runtime/rom-encoded/"
+GENERATED_DATA = {
+    "guest-runtime/runtime-check.dex": "runtime/build/dex/out/runtime-check.dex",
+    "guest-runtime/framework-check.dex": "runtime/build/dex/out/framework-check.dex",
+    "guest-runtime/guest.prop": "runtime/build/data/guest.prop",
+    "guest-runtime/rootfs/system/etc/seccomp_policy/mediacodec.policy": "runtime/build/data/rootfs/system/etc/seccomp_policy/mediacodec.policy",
+    "guest-runtime/rootfs/vendor/etc/seccomp_policy/mediacodec.policy": "runtime/build/data/rootfs/vendor/etc/seccomp_policy/mediacodec.policy",
+    "guest-runtime/rootfs/vendor/etc/seccomp_policy/mediaextractor.policy": "runtime/build/data/rootfs/vendor/etc/seccomp_policy/mediaextractor.policy",
+    "guest-runtime/rootfs/vendor/etc/seccomp_policy/mediaswcodec.policy": "runtime/build/data/rootfs/vendor/etc/seccomp_policy/mediaswcodec.policy",
+    "guest-runtime/rootfs/vendor/etc/vintf/manifest/a10vm-host-devices.xml": "runtime/build/data/rootfs/vendor/etc/vintf/manifest/a10vm-host-devices.xml",
+    "guest-runtime/rootfs/vendor/etc/vintf/manifest/a10vm-media-codec.xml": "runtime/build/data/rootfs/vendor/etc/vintf/manifest/a10vm-media-codec.xml",
+    "guest-runtime/rootfs/vendor/etc/vintf/manifest/android.hardware.sensors@2.0.xml": "runtime/build/data/rootfs/vendor/etc/vintf/manifest/android.hardware.sensors@2.0.xml",
+    "guest-runtime/rootfs/vendor/etc/vintf/manifest/android.hardware.gnss@2.0-service.xml": "runtime/build/data/rootfs/vendor/etc/vintf/manifest/android.hardware.gnss@2.0-service.xml",
+    "guest-runtime/rootfs/system/bin/a10vm-boot-check": "runtime/build/data/rootfs/system/bin/a10vm-boot-check",
+    "guest-runtime/system-image-paths.json": "runtime/build/data/system-image-paths.json",
+}
 
 
 class PrepareError(Exception):
@@ -271,6 +284,12 @@ def data_source(entry, entries, ref_index):
         reason = "大小写冲突件在 Windows 解包时丢了另一份"
     else:
         reason = "参考 prepared 独有的数据件"
+
+    generated_relative = GENERATED_DATA.get(name)
+    if generated_relative:
+        generated = os.path.join(MODULE, generated_relative.replace("/", os.sep))
+        if matches(generated, entry):
+            return generated, "project-a10-generated", False, generated_relative, reason
 
     path = os.path.join(REFERENCE, "assets", name.replace("/", os.sep))
     if matches(path, entry):

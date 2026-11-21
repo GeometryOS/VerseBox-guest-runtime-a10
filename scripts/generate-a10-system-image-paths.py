@@ -18,8 +18,6 @@ VIRTUAL_ROOTS = (
 )
 PROJECT_PATHS = (
     "system/bin/a10vm-boot-check",
-    "system/etc/init/a10vm-display.rc",
-    "system/framework/a10vm-bridge.jar",
     "a10vm-init",
     "ipc",
 )
@@ -40,8 +38,6 @@ def generate(index: Path) -> list[dict[str, str]]:
         "/mnt": "/metadata", "/postinstall": "/oem", "/proc": "/postinstall",
         "/sdcard": "/sbin", "/storage": "/sdcard", "/sys": "/storage",
         "/system/bin/a10vm-boot-check": "/system/bin/zcat",
-        "/system/etc/init/a10vm-display.rc": "/system/etc/init/wificond.rc",
-        "/system/framework/a10vm-bridge.jar": "/system/framework/wifi-service.jar.prof",
     }
     for value, anchor in insertions.items():
         if value in ordered:

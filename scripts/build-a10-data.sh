@@ -21,12 +21,14 @@ done
 if [ "$PLAN_ONLY" = 1 ]; then
     printf 'module: %s\n' "$MODULE"
     printf 'output: %s/runtime/build/data\n' "$MODULE"
-    printf 'steps: stage-a10-text-data -> generate-a10-media-policies -> generate-a10-guest-prop -> generate-a10-system-image-paths\n'
+    printf 'steps: build-a10-dex -> stage-a10-text-data -> generate-a10-media-policies -> generate-a10-guest-prop -> generate-a10-system-image-paths -> verify-a10-generated-data\n'
     printf 'nothing was executed (plan-only).\n'
     exit 0
 fi
+"$PY" scripts/build-a10-dex.py
 "$PY" scripts/stage-a10-text-data.py
 "$PY" scripts/generate-a10-media-policies.py
 "$PY" scripts/generate-a10-guest-prop.py
 "$PY" scripts/generate-a10-system-image-paths.py
+"$PY" scripts/verify-a10-generated-data.py
 printf 'A10 data build finished: %s/runtime/build/data\n' "$MODULE"

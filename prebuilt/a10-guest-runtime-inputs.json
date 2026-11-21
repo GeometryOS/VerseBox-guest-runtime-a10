@@ -18048,11 +18048,6 @@
       "sha256": "0e23a29d1969289eebaed3c17a7eb9bff33259df56b830702733e0e1727ae7b4"
     },
     {
-      "name": "guest-runtime/rootfs/system/framework/a10vm-bridge.jar",
-      "bytes": 5750,
-      "sha256": "55cdbd1594e76550f4fc58c17f2e4f917cd2b334c906a697f274fbe83a6e6814"
-    },
-    {
       "name": "guest-runtime/rootfs/vendor/etc/audio_policy_configuration.xml",
       "bytes": 1844,
       "sha256": "b473dc1199d8b0035640e19ccb36d37140ddaf256ab95b319894498fdb7a233e"
@@ -22431,12 +22426,6 @@
       "name": "guest-runtime/rootfs/system/etc/bpf/netd.o",
       "bytes": 11840,
       "sha256": "b2801434588a9e9daba88c3cbb793f57ba9f4035f68ab96d9a57d5c27dcbffe6",
-      "mode": 420
-    },
-    {
-      "name": "guest-runtime/rootfs/system/etc/init/a10vm-display.rc",
-      "bytes": 332,
-      "sha256": "8ca9d5ae47bbc15d5cb1010d243e81176e0b140a40c1297f9d8e5da679adac28",
       "mode": 420
     },
     {
@@ -27864,8 +27853,8 @@
     },
     {
       "name": "guest-runtime/system-image-paths.json",
-      "bytes": 238754,
-      "sha256": "4690cb31c49bceb2c18b06c51ab83ef9e404efbf405434638183d9e37caedcc4"
+      "bytes": 238659,
+      "sha256": "8c6aff4e6c4e5691a37cfd8a02fdf42a904bbd00724f14d5f5f04349db9edcf4"
     },
     {
       "name": "guest-runtime/guest.prop",

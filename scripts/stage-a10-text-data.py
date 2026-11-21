@@ -16,7 +16,6 @@ MAPPINGS = (
     ("vendor/runtime-data/vintf/image-gnss.xml", "rootfs/vendor/etc/vintf/manifest/android.hardware.gnss@2.0-service.xml"),
     ("vendor/runtime-data/seccomp/media-transport.policy", "rootfs/vendor/etc/seccomp_policy/mediacodec.policy"),
     ("guest-data/system/bin/a10vm-boot-check", "rootfs/system/bin/a10vm-boot-check"),
-    ("guest-data/system/etc/init/a10vm-display.rc", "rootfs/system/etc/init/a10vm-display.rc"),
 )
 
 

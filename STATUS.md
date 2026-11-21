@@ -1,6 +1,6 @@
 # Android 10 运行时仓库 · 真实进度
 
-最后更新：2026-11-20
+最后更新：2026-11-21
 
 一句话：APK 导入已由维护者确认修复。ROM 1.0.1 的 HWC host-fence fallback 已编译并通过 ABI/打包校验，但已在实体机实例 `1795154236450` 证实无效：状态栏/导航栏与动画仍抽搐。该实例确实加载 SHA `eeb34ac2…` 的新 HWC；日志仍有 8 条 `No local sync point found`、5 次 35–111 帧跳帧、最高 3,217 ms slow delivery、导航栏窗口冻结 620 ms。不能继续宣称该 fence 机制是根因或已修复。
 错误实验 ROM `dist/versebox-android10-1.0.1-hwc-native-fence-fallback.zip` 保留供取证；原 `prepared/` 与 `1.0.0` ROM 未改。下一步回到同一实例的 `presentDisplay`/SurfaceFlinger buffer acquire-release 时间线，定位实际停住的是哪个 producer/consumer，不做新构建直到能说明可证伪判据。
@@ -9,9 +9,7 @@
 
 三句话交接：
 
-1. 42 件项目产物已收口：39 件由本仓库源码编出，`image/a10vm-init` 与两个宿主件按字节钉在
-   `prebuilt/arm64/`，各自带 `.sha256`。`prepared` 已由 rootfs 与这批产物重新生成，
-   1058 个 native、2209 条 data，26 件 pinned，逐条在 `prepared/prepare-report.json`。
+1. A10 S5 源码解耦正在进行：77 个 Java/framework 源已按字节迁入，11 件 A10-generated data 已通过身份哈希，`prepare-a10.py --check` 通过。当前检查结果为 1058 个 native、2207 条 data、14 件 pinned。旧 `prepared/` 仍保留，不代表新源闭包已完整。bridge jar 与其 init rc 已从新 inventory 移除，因为当前 host startup 不执行 guest init；已有 prepared、ROM 和实例未改。详见 `_docs/android10-port/29-S5源码解耦取证与当前边界.md`。
 2. 真机已越过 seed、ART 与框架入口并到达 `READY`，当前仍可运行 A10。早期 `Wrong guest SDK` 卡点已通过 libc 属性区修复关闭，取证与修正过程保留在 `docs/android10-port/11-进展日志.md` 的 2026-11-19 记录；这不是本轮图层卡顿的原因。
    APK 导入已由维护者确认在 Android Studio 新版 app 中恢复；本轮不要求再构建 app 或重复导入测试。
 3. 不许重试的路径在 §8。另外 `bridges/` 的 .gitignore 已改成只排除产物目录，源码目录不再被整体忽略；
@@ -38,8 +36,8 @@ WindowsApps 里那个 `python3.exe` 是商店占位，跑不起来。
 | S2 镜像与 rootfs | 完成（2026-11-19）：fetch 与 extract 都跑通，prepared 还没切 | 本文 §2 的镜像四条；产物是 `downloads/`、`rootfs/`、`rootfs-index.json` |
 | S3 源码运行时（C/C++） | 完成（2026-11-19）：闭包五件自建产物齐，第六件 `libc++` 取证确认取自镜像；`dex-cache` 判定不入链 | `runtime/build/{lib/liba10vm-bootstrap.a, bin/source-linker64, lib/libc.so, lib/libdl.so, lib/libm.so, lib/libunwind.so}`，判据见 §2；上游 1,562 个文件校验通过 |
 | S4 桥与图形（C/C++） | 完成（2026-11-19）：binder、图形、属性服务、设备与日志、媒体与 drm 五组完成；`image/a10vm-init` 与两个宿主件按 `_audit/00` §4.4 钉住 | `bridges/lib/registry` 七个库与 `bridges/bin` 两个进程、`bridges/graphics/lib` 六个库、`bridges/properties` 三件、`bridges/devices/lib` 五个库、`bridges/media` 七件；导出面对 `prepared` 那份缺零个；`prebuilt/arm64/` 三件带 `.sha256`，判据见 §2 与 §10 |
-| S5 prepared 与 dex | 进行中（2026-11-19）：prepared 已由 rootfs 重新生成并通过打包自检；dex 仍 pinned，26 件 pinned 逐条有记录 | `python scripts/prepare-a10.py --apply` 得到 1058 个 native、2209 条 data；`python rom/pack-rom.py --verify-only dist/versebox-android10-1.0.0.zip` 通过；`prepared/prepare-report.json` 列 26 件 pinned，判据见 §10 |
-| S6 发布与 app 入库 | 未开始 | 没有 `.github/`，没有 tag 与 Release；CI 由维护者另开会话补 |
+| S5 prepared 与 dex | 进行中（2026-11-21）：A10-local data 生成和 source-first 校验已接入；DEX 源闭包 77 文件已完整迁入，API 31 javac/D8 smoke 已产出 2 个 DEX（仅语法与类闭包验证），API 29 清单身份与真机构建仍待 CI；bridge/init 遗留路径从新 inventory 移除 | `python scripts/prepare-a10.py --check` 退出码 0，1058 个 native、2207 条 data、14 件 pinned；`python scripts/verify-a10-generated-data.py` 验证 11 件 data 字节与 SHA-256；详见 `_docs/android10-port/29-S5源码解耦取证与当前边界.md` |
+| S6 发布与 app 入库 | 未开始 | S5 缺口闭合并验证完整重建前，不建立 CI/release |
 
 ## 2. 已验证
 

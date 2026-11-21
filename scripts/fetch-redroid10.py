@@ -331,16 +331,33 @@ def layer_name(number, layer_digest, media):
 
 
 def fetch_config(bearer, repo, config, path):
+    """取镜像 config（几百字节）。走和层一样的路：Bearer 只发 registry，字节从签名直链取。
+
+    这里原来用的是"带 Bearer 让 urllib 自己跟 302"。registry 会把 blob 302 到 CDN 的
+    签名直链，urllib 跟着跳的时候**把 Authorization 一起带过去**，CDN 那边签名与头
+    对不上就回 400 Bad Request（CI 里的 traceback 就断在 http_error_302 之后那一跳）。
+    所以 config 也走 first_hop + 直链，失败按同一个退避重试。
+    """
     wanted = (config.get("digest") or "").split(":")[-1]
     if not wanted:
         return None
     if path.is_file() and digest(path) == wanted:
         return json.loads(path.read_text(encoding="utf-8"))
-    request = urllib.request.Request(
-        REGISTRY.format(repo=repo) + "/blobs/" + config["digest"],
-        headers={"Authorization": "Bearer " + bearer})
-    with urllib.request.urlopen(request, timeout=120) as response:
-        path.write_bytes(response.read())
+    locate = blob_locator(repo, config["digest"], bearer)
+    payload = None
+    tries = 0
+    while payload is None:
+        try:
+            with urllib.request.urlopen(locate(), timeout=120) as response:
+                payload = response.read()
+        except Exception as failure:
+            tries += 1
+            if tries > RETRIES:
+                raise SystemExit("config 取回失败：%s" % describe(failure))
+            if isinstance(failure, urllib.error.HTTPError) and failure.code in (400, 401, 403):
+                locate(force=True)
+            delay(tries)
+    path.write_bytes(payload)
     actual = digest(path)
     if actual != wanted:
         raise SystemExit("config 的 sha256 不符：%s != %s" % (actual, wanted))

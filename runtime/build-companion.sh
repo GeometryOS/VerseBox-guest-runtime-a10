@@ -24,6 +24,8 @@ if [ -z "$PY" ]; then
     fi
 fi
 # 单元里的脚本写死 python3，这里用函数遮蔽，复制品一个字节都不改。
+# PY 先换成绝对路径：遮蔽之后 "$PY" 若仍叫 python3 就会调回自己，递归到死。
+PY=$(command -v "$PY" 2>/dev/null || printf '%s' "$PY")
 python3() { "$PY" "$@"; }
 
 for tool in clang clang++ ld.lld llvm-ar llvm-readelf llvm-nm git python3; do

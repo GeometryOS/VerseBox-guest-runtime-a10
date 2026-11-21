@@ -229,7 +229,9 @@ def ranged(locate, partial, size, workers):
                 with lock:
                     refusals.append(str(refusal))
                 return
-            except Exception as failure:
+            except (SystemExit, Exception) as failure:
+                # 直链解析失败在 main 里是 SystemExit；它在子线程里会悄悄结束这个线程，
+                # 所以这里一并接住，转成"某一段失败"再往上抛，别让调用方只看到字节数不符。
                 tries += 1
                 if tries > RETRIES:
                     with lock:

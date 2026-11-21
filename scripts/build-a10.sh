@@ -7,8 +7,7 @@
 #   scripts/build-a10.sh --rom-version 1.1.0 --lib-mode rom
 #   scripts/build-a10.sh --plan-only      # 只打印要跑的段与产物路径，一步都不执行
 #
-# A10 的 prepared 来源是参考 APK：本仓库还没有内容生成脚本，这一步是保真搬运，
-# 规范化计划见 BUILD.md 与 docs/android10-port/。
+# A10 的 prepared 当前从参考 APK 或 app 仓库的 runtime-inputs 保真抽取。
 # 打包器与 stager 都在本仓库 rom/ 里，A9/A15 的脚本一律不引用（三个独立仓库）。
 # 本脚本不跑 Gradle：APK 由 app 仓库消费 prepared-apk/ 编出来。
 set -eu

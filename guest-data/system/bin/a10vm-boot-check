@@ -1,0 +1,11 @@
+# Sourced by the guest monitor and its host-side regression test.
+a10vm_boot_identity() {
+    [ "$(getprop ro.build.version.sdk)" = 29 ] || return 1
+    [ "$(getprop sys.boot_completed)" = 1 ] || return 1
+    [ "$(getprop init.svc.zygote)" = running ] || return 1
+    [ "$(getprop init.svc.surfaceflinger)" = running ] || return 1
+    a10vm_server=$(pidof system_server) || return 1
+    [ -n "$a10vm_server" ] || return 1
+    service check activity | grep -q '^Service activity: found$' || return 1
+    printf '%s\n' "$a10vm_server"
+}

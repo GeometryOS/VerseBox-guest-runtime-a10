@@ -11,6 +11,7 @@ runtime/lists/blueprints.txt 每行也是三段，取的是各模块的 Android.
 
 产物：runtime/downloads/<名字>.tar.gz 与 runtime/upstream/<仓库>/<子树>/。
 同一份归档下载过一次就不再下载，目录已经存在就不再解开，所以重复跑只做事后校验。
+上游回 429 或 5xx 时按 `retried` 退避重试，重试用尽才失败。
 
 用法（在 guest-runtime-a10 根目录）：
 
@@ -25,6 +26,8 @@ import hashlib
 import os
 import subprocess
 import sys
+import time
+import urllib.error
 import urllib.request
 
 MODULE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -46,6 +49,10 @@ BLUEPRINTS = os.path.join(MODULE, "runtime", "lists", "blueprints.txt")
 BASE = "https://android.googlesource.com/platform/%s/+archive"
 FILE_BASE = "https://android.googlesource.com/platform/%s/+/%s/%s?format=TEXT"
 TIMEOUT = 120
+ATTEMPTS = 5
+# gitiles 的 archive 接口是现场打包的：同一个提交在负载高时会回 503，几秒后就好。
+# 429 与这几种 5xx 值得再试，403、404 再试也没用，直接抛。
+RETRY_STATUS = (429, 500, 502, 503, 504)
 
 
 def read_entries(lists):
@@ -85,15 +92,52 @@ def archive_name(repository, commit, subtree):
     return "%s-%s-%s.tar.gz" % (repository.replace("/", "_"), commit, subtree.replace("/", "_"))
 
 
+def retried(label, call):
+    """跑一次取源调用；上游打嗝就等一会儿再来，别的错误照原样抛。
+
+    一条 503 让整条 CI 从镜像重新开始，是这一步最贵的失败方式：这一轮前面六份源码都
+    取到了，第七份赶上一次 503，整条链就断了。所以这里重试的是"同一个提交再要一次"，
+    不换地址、不降级，重试用尽才失败。
+    """
+    attempt = 0
+    while True:
+        attempt += 1
+        try:
+            return call()
+        except urllib.error.HTTPError as failure:
+            if failure.code not in RETRY_STATUS or attempt >= ATTEMPTS:
+                raise
+            reason = "HTTP %d %s" % (failure.code, failure.reason)
+        except (urllib.error.URLError, TimeoutError) as failure:
+            if attempt >= ATTEMPTS:
+                raise
+            reason = str(failure)
+        wait = min(2 ** attempt, 30)
+        print("  重试 %d/%d，%d 秒后：%s（%s）" % (attempt, ATTEMPTS - 1, wait, reason, label),
+              flush=True)
+        time.sleep(wait)
+
+
 def download(url, target):
     partial = target + ".part"
-    with urllib.request.urlopen(url, timeout=TIMEOUT) as response, open(partial, "wb") as sink:
-        while True:
-            chunk = response.read(1 << 20)
-            if not chunk:
-                break
-            sink.write(chunk)
+
+    def attempt():
+        with urllib.request.urlopen(url, timeout=TIMEOUT) as response, open(partial, "wb") as sink:
+            for chunk in iter(lambda: response.read(1 << 20), b""):
+                sink.write(chunk)
+
+    retried(os.path.basename(target), attempt)
     os.replace(partial, target)
+
+
+def read_url(url):
+    """取一份不大的内容（单文件接口）。同一个 host、同一种失败模式，共用重试。"""
+
+    def attempt():
+        with urllib.request.urlopen(url, timeout=TIMEOUT) as response:
+            return response.read()
+
+    return retried(url.rsplit("/", 1)[-1][:60], attempt)
 
 
 def extract(archive, destination):
@@ -128,8 +172,7 @@ def fetch_blueprints(upstream, check_only):
                 print("缺少 %s %s %s" % (repository, path, commit))
                 continue
             os.makedirs(os.path.dirname(destination), exist_ok=True)
-            with urllib.request.urlopen(FILE_BASE % (repository, commit, path), timeout=TIMEOUT) as response:
-                encoded = response.read()
+            encoded = read_url(FILE_BASE % (repository, commit, path))
             with open(destination + ".part", "wb") as sink:
                 sink.write(base64.b64decode(encoded))
             os.replace(destination + ".part", destination)

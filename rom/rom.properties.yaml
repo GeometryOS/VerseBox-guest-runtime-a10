@@ -17,7 +17,7 @@ schema: versebox-rom-properties/1
 id: android10
 name: Android 10
 androidVersion: "10"
-description: 独立 API 29 用户空间（Redroid 10 + AOSP 10 自建运行时）
+description: AOSP10 虚拟机
 defaultRomVersion: 1.0.0
 
 # 客体 .so 的承载方式（docs/rom-package/04 §3.3）：apk / rom / both。

@@ -20,7 +20,7 @@ id: android10
 name: Android 10
 androidVersion: "10"
 description: AOSP10 虚拟机
-defaultRomVersion: 1.0.0
+defaultRomVersion: 1.0.1
 versionPointer: maxcv
 minAppVersionCode: 105
 

@@ -73,7 +73,7 @@ done
 ROM_ID=$(sed -n 's/^id:[[:space:]]*//p' rom/rom.properties.yaml 2>/dev/null | head -n 1 || true)
 ROM_DEFAULT_VERSION=$(sed -n 's/^defaultRomVersion:[[:space:]]*//p' rom/rom.properties.yaml 2>/dev/null | head -n 1 || true)
 ROM_VERSION=${ROM_VERSION:-$ROM_DEFAULT_VERSION}
-ROM_OUT=${ROM_OUT:-dist/versebox-$ROM_ID-$ROM_VERSION.zip}
+ROM_OUT=${ROM_OUT:-dist/$ROM_ID@$ROM_VERSION/versebox-$ROM_ID-$ROM_VERSION.zip}
 
 # --plan-only / A10_PLAN_ONLY=1：只打印要跑的段与产物路径，一步都不执行。
 # 排障时先看这一段，能确认会不会动 prepared、产物落在哪、停在哪个仓库。

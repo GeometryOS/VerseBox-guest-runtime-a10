@@ -1,1 +1,41 @@
-[]
+[
+  {
+    "version": "v1.0.0",
+    "title": "VerseBox A10 v1.0.0",
+    "romVersion": "1.0.0",
+    "romKey": "android10@1.0.0",
+    "payloadSha256": "dfb72706c429dab907bf69e92e0848e483b8e30e00a1a687ec6126b4b843e3bc",
+    "payloadBytes": 1526094041,
+    "payloadFiles": 3265,
+    "commit": "28c9a54863dd77ccfbdd473d6c4f2e950c383cb3",
+    "runUrl": "https://github.com/GeometryOS/VerseBox-guest-runtime-a10/actions/runs/44999423568",
+    "publishedAt": "2026-11-22T07:51:03.244Z",
+    "assets": [
+      {
+        "name": "a10-runtime-v1.0.0.tar.gz",
+        "bytes": 646986695,
+        "sha256": "a56e66657363e9ce443c371357816e9fa6d89b254d56071a4e7aaf054035cf95"
+      },
+      {
+        "name": "dist/apk-resident-libs-android10.tar",
+        "bytes": 12984320,
+        "sha256": "3ed0fe033a27cfba9545458e7039680a874f33e020095eaac99786aabf915ac1"
+      },
+      {
+        "name": "dist/pack-android10-1.0.0.json",
+        "bytes": 687,
+        "sha256": "09408ca7600fad5c6cdf63039e8522dc167c1f7828a417590b867b6ac1d22654"
+      },
+      {
+        "name": "dist/versebox-android10-1.0.0-min.zip",
+        "bytes": 702,
+        "sha256": "ba567e78d0f08b5f6575708a1015de19e8ff8563871e74881441cd8b47be7160"
+      },
+      {
+        "name": "dist/versebox-android10-1.0.0.zip",
+        "bytes": 647390885,
+        "sha256": "f06d6c647cc8eb644d86d40d0feeb4ab7a31483d469b39dab005d36e3aa46478"
+      }
+    ]
+  }
+]

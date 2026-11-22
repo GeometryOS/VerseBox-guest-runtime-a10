@@ -117,7 +117,12 @@ jobs:
           test -x runtime/build/media/tools/hidl-gen
 
       - name: Resolve media link dependencies
-        run: python3 runtime/media-deps.py
+        run: |
+          set -e
+          # 这一步要 llvm-readelf 读 DT_NEEDED；它只在 NDK 的 bin 里，runner 的
+          # /usr/bin 没有。前后两步都自己把 NDK 放进 PATH，这一步漏了。
+          export PATH="${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin:${PATH}"
+          python3 runtime/media-deps.py
 
       - name: Build binder, graphics, properties and devices
         run: |

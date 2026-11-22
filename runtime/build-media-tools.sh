@@ -110,17 +110,27 @@ for header in $(grep -rl 'template<> constexpr std::array' "$GEN" || true); do
 done
 printf 'HIDL 头：%s 个\n' "$(find "$GEN" -name '*.h' | wc -l)"
 
-# AIDL：SDK 的 build-tools 里就有官方 aidl，先试它；没有再用 AOSP 的。
+# AIDL：用 build-tools 30.0.3 里那个 aidl，不挑最新的。
+#
+# build-tools 31 之后的 aidl 会给每个接口多生成 IFooDelegator，并把这些类标成
+# LIBBINDER_EXPORTED。这个宏是 libbinder 11+ 的 Android.bp 里定义的，客体里是 A10 的
+# libbinder，宏没定义就把类名当成类型名，编译直接炸在 "variable has incomplete type
+# 'class LIBBINDER_EXPORTED'"。30.0.3 的产出与本仓库已在用的头逐字节一致，
+# 所以钉死这一代；A10_AIDL 可以覆盖，但覆盖的是"另一份同代的 aidl"，不是随便一个。
+AIDL_PINNED=30.0.3
 aidl_bin=${A10_AIDL:-}
 if [ -z "$aidl_bin" ]; then
     for candidate in "${ANDROID_HOME:-}" "${ANDROID_SDK_ROOT:-}"; do
         [ -n "$candidate" ] || continue
-        found=$(ls -1 "$candidate"/build-tools/*/aidl 2>/dev/null | sort -V | tail -1 || true)
-        if [ -n "$found" ]; then aidl_bin=$found; break; fi
+        if [ -x "$candidate/build-tools/$AIDL_PINNED/aidl" ]; then
+            aidl_bin="$candidate/build-tools/$AIDL_PINNED/aidl"
+            break
+        fi
     done
 fi
 [ -n "$aidl_bin" ] || {
-    printf 'build-media-tools.sh: 找不到 aidl，用 A10_AIDL 指一个，或装 Android build-tools\n' >&2
+    printf 'build-media-tools.sh: 找不到 build-tools %s 的 aidl；装 build-tools;%s，或用 A10_AIDL 指一个\n' \
+        "$AIDL_PINNED" "$AIDL_PINNED" >&2
     exit 1
 }
 "$aidl_bin" --lang=cpp -I"$AV/camera/aidl" -I"$NATIVE/aidl/gui" -o"$AIDLGEN" -h"$GEN" \

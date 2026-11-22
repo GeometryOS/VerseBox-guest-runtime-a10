@@ -48,10 +48,12 @@ jobs:
           echo "${ANDROID_HOME}/cmdline-tools/latest/bin" >> "${GITHUB_PATH}"
           yes | "${SDKMANAGER}" --sdk_root="${ANDROID_HOME}" --licenses >/dev/null || true
           "${SDKMANAGER}" --sdk_root="${ANDROID_HOME}" --install \
-            "platforms;android-35" "build-tools;35.0.0" "ndk;29.0.14206865"
+            "platforms;android-35" "build-tools;35.0.0" "build-tools;30.0.3" "ndk;29.0.14206865"
           test -f "${ANDROID_HOME}/platforms/android-35/android.jar"
           test -x "${ANDROID_HOME}/build-tools/35.0.0/d8"
-          test -x "${ANDROID_HOME}/build-tools/35.0.0/aidl"
+          # 客体的 AIDL 头必须由 30.0.3 的 aidl 生成：35 那代会引入 IFooDelegator 与
+          # LIBBINDER_EXPORTED，A10 的 libbinder 没有这个宏。d8 仍用 35.0.0。
+          test -x "${ANDROID_HOME}/build-tools/30.0.3/aidl"
           test -x "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++"
           test -x "${ANDROID_NDK_HOME}/toolchains/llvm/prebuilt/linux-x86_64/bin/ld.lld"
 

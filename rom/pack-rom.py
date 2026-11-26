@@ -124,7 +124,7 @@ def read_properties(path):
 PROPERTY_ORDER = (
     "schema", "id", "romVersion", "name", "androidVersion", "apiLevel", "description",
     "inputs", "payloadRoot", "payloadBytes", "payloadSha256", "libMode",
-    "versionPointer", "minAppVersionCode", "packedBy", "packedAt",
+    "minAppVersionCode", "packedBy", "packedAt",
 )
 
 
@@ -391,9 +391,6 @@ def pack(args):
             min_app_version_code = 0
         if min_app_version_code < 1:
             raise PackError("rom.properties.yaml 的 minAppVersionCode 必须是正整数")
-        version_pointer = properties.get("versionPointer") or rom_version
-        if version_pointer != "maxcv" and version_pointer != rom_version:
-            raise PackError("固定 versionPointer 必须与本次 romVersion 相同")
         write_properties(os.path.join(stage, "versebox_properties.yaml"), {
             "schema": ROM_SCHEMA,
             "id": rom_id,
@@ -407,7 +404,6 @@ def pack(args):
             "payloadBytes": payload_bytes,
             "payloadSha256": payload_hash,
             "libMode": lib_mode,
-            "versionPointer": version_pointer,
             "minAppVersionCode": min_app_version_code,
             "packedBy": "rom/pack-rom.py@%s" % (args.git_rev or "rev-unknown"),
             "packedAt": datetime.datetime.now(datetime.timezone.utc)

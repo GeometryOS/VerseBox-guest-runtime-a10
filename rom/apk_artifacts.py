@@ -178,10 +178,7 @@ def build_apk_artifacts(zip_path, out_dir=None, resident_path=None, log=print, p
         values[key.strip()] = value.strip().strip('"').strip("'")
     rom_id = values.get("id") or "rom"
     rom_version = values.get("romVersion") or "0"
-    pointer = values.get("versionPointer") or ""
     min_app_code = int(values.get("minAppVersionCode") or 0)
-    if pointer != "maxcv" and not re.fullmatch(r"[0-9]+\.[0-9]+\.[0-9]+", pointer):
-        raise RuntimeError("versionPointer 必须是 maxcv 或 MAJOR.MINOR.PATCH")
     if min_app_code <= 0:
         raise RuntimeError("minAppVersionCode 必须是正整数")
 
@@ -203,7 +200,6 @@ def build_apk_artifacts(zip_path, out_dir=None, resident_path=None, log=print, p
     audit = {
         "schema": "versebox-rom-pack-audit-intent/1",
         "romKey": "%s@%s" % (rom_id, rom_version),
-        "versionPointer": pointer,
         "minAppVersionCode": min_app_code,
         "packSeconds": round(pack_seconds if pack_seconds is not None else time.time() - started, 1),
         "files": files,

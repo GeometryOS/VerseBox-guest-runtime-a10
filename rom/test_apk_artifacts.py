@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 # SPDX-License-Identifier: GPL-3.0-only
+"""APK 侧产物与审计清单的回归测试。"""
 
 import hashlib
 import json
@@ -15,7 +16,7 @@ from apk_artifacts import build_apk_artifacts
 
 
 class ApkArtifactsTest(unittest.TestCase):
-    def make_rom(self, root, pointer="maxcv", min_app="105"):
+    def make_rom(self, root, min_app="105"):
         rom = root / "versebox-fixture-1.2.3.zip"
         properties = "\n".join((
             "schema: versebox-rom/2",
@@ -25,7 +26,6 @@ class ApkArtifactsTest(unittest.TestCase):
             "payloadRoot: payload/",
             "payloadBytes: 8",
             "payloadSha256: " + "a" * 64,
-            "versionPointer: " + pointer,
             "minAppVersionCode: " + min_app,
         ))
         inputs = json.dumps({"files": [{
@@ -46,11 +46,10 @@ class ApkArtifactsTest(unittest.TestCase):
             root = Path(temporary)
             rom, resident = self.make_rom(root)
             result = build_apk_artifacts(str(rom), str(root), str(resident), log=lambda _: None)
-            audit_path = Path(result["auditIntent"])
-            audit = json.loads(audit_path.read_text(encoding="utf-8"))
+            audit = json.loads(Path(result["auditIntent"]).read_text(encoding="utf-8"))
             self.assertEqual(audit["romKey"], "fixture@1.2.3")
-            self.assertEqual(audit["versionPointer"], "maxcv")
             self.assertEqual(audit["minAppVersionCode"], 105)
+            self.assertNotIn("versionPointer", audit)
             self.assertEqual(len(audit["files"]), 3)
             for item in audit["files"]:
                 path = root / item["name"]
@@ -58,13 +57,6 @@ class ApkArtifactsTest(unittest.TestCase):
                 self.assertEqual(item["sha256"], hashlib.sha256(path.read_bytes()).hexdigest())
             with tarfile.open(result["residentTar"]) as archive:
                 self.assertEqual(archive.getnames(), ["liba10vm-linker64.so"])
-
-    def test_audit_rejects_invalid_pointer(self):
-        with tempfile.TemporaryDirectory() as temporary:
-            root = Path(temporary)
-            rom, resident = self.make_rom(root, pointer="latest")
-            with self.assertRaisesRegex(RuntimeError, "versionPointer"):
-                build_apk_artifacts(str(rom), str(root), str(resident), log=lambda _: None)
 
     def test_audit_rejects_missing_minimum_app_version(self):
         with tempfile.TemporaryDirectory() as temporary:

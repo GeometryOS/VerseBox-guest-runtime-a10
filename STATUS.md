@@ -348,3 +348,13 @@ ROM 1.0.1 当前作为**无效实验**保留。下一步先取同一刷新卡停
 `seed_complete=1`、`art_runtime_ready=1`，服务进程全部起来；框架入口 `DesktopBoot.main` 抛
 `Wrong guest SDK`，`framework-server.log` 另有一条 `services.jar` 的 dex checksum 不匹配。
 这一轮没有改源码去绕过这条断言，也没有再动 libc；下一轮从框架件与 odex 的配套关系查。
+
+
+## 版本隔离与 maxcv 闸门（2026-11-22，未在 CI 验证）
+
+- 产物目录改为 `dist/<id>@<version>/`：同版本产物同目录，不同版本不再互相覆盖。
+- 打包时自动生成 `pack-audit-intent.json`，含 `romKey`、`minAppVersionCode`、`packSeconds`、`files[]`（名称/字节数/SHA-256）；工作区不手写该文件。
+- `maxcv` 是 **app 侧**选包策略。ROM 只发布 `minAppVersionCode` 兼容下限，不写 `versionPointer`。
+- 新增 `.github/workflows/rom-version-gate.yml`：跑 `rom.test_version_gate` 与 `rom.test_apk_artifacts`，并校验 `rom.properties.yaml` 与 `dist/*/pack-audit-intent.json`。
+- 本地已跑：11 个单测通过（清单结构、maxcv 选择、固定版本下限、清单篡改拒绝）。
+- 尚未做：GitHub Actions 实跑、按新目录重建产物、真机验证。

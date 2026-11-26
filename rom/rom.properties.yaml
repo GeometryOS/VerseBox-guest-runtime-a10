@@ -13,7 +13,7 @@
 #
 # apiLevel 不在这里写：它由 prepared 的清单（guestSdk=29）决定，写了就必须与之一致。
 # payloadBytes / payloadSha256 由打包器按实际内容算出来。
-# versionPointer 由维护者选定为精确版本或 maxcv；minAppVersionCode 是 app versionCode 的下限。
+# minAppVersionCode 是这一版要求的最低 app versionCode（兼容下限）；maxcv 是 app 侧策略，不在这里声明。
 # pack-audit-intent.json 在出包时自动生成，不能手写进仓库。
 schema: versebox-rom-properties/1
 id: android10
@@ -21,7 +21,6 @@ name: Android 10
 androidVersion: "10"
 description: AOSP10 虚拟机
 defaultRomVersion: 1.0.1
-versionPointer: maxcv
 minAppVersionCode: 105
 
 # 客体 .so 的承载方式（docs/rom-package/04 §3.3）：apk / rom / both。
